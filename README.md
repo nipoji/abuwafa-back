@@ -1,3 +1,6 @@
+# Dokumentasi
+**[Endpoint](https://documenter.getpostman.com/view/34827171/2sAYJ9Ae6N)**
+
 Buat .env yang berisi
 
 KEY_JWT="isi apapun"
