@@ -1,12 +1,17 @@
+// app.js
 "use strict";
 
 const express = require("express");
 const userRoutes = require("./src/user-routes");
-const reportRoutes = require("./src/report-routes");
 const studentProfileRoutes = require("./src/profile-student-routes");
 const tutorProfileRoutes = require("./src/profile-tutor-routes");
 const adminProfileRoutes = require("./src/profile-admin-routes");
-const scheduleRoutes = require("./src/schedule-routes"); // Added schedule routes
+const scheduleRoutes = require("./src/schedule-routes");
+const attendanceRoutes = require("./src/attendance-routes");
+const paycheckRoutes = require("./src/paycheck-routes");
+const invoiceRoutes = require("./src/invoice-routes");
+const monthlyReportRoutes = require("./src/monthlyReport-routes");
+const { generateMonthlyReports, testGenerateReports } = require("./src/monthlyReport");
 const cors = require("cors"); // CORS middleware for cross-origin requests
 const morgan = require("morgan"); // Logging middleware
 require("dotenv").config();
@@ -32,8 +37,12 @@ app.get("/", (req, res) => {
 app.use("/auth", userRoutes.routes);
 
 // API routes
-app.use("/api", reportRoutes.routes);
-app.use("/api", scheduleRoutes.routes); // Added schedule route handling
+app.use("/api", scheduleRoutes.routes);
+app.use("/api", attendanceRoutes.routes);
+app.use("/api", paycheckRoutes.routes);
+app.use("/api", invoiceRoutes.routes);
+app.use('/api/', monthlyReportRoutes);
+testGenerateReports(1);
 
 // Profile routes
 app.use("/api/students", studentProfileRoutes.routes);

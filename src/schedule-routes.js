@@ -2,12 +2,11 @@
 const express = require('express');
 const {
   createSchedule,
-  getSchedule,
   listSchedules,
   updateSchedule,
   deleteSchedule
-} = require('./scheduleControllers'); // Pastikan file dan path benar
-const { verifyToken } = require('./verifyToken'); // Pastikan file dan path benar
+} = require('./scheduleControllers');
+const { verifyToken } = require('./verifyToken');
 
 const router = express.Router();
 
