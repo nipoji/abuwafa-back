@@ -33,11 +33,25 @@ const createTutorProfile = async (req, res) => {
 
 const updateTutorProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { id } = req.params; // Get the tutor ID from the route parameter
     const updates = req.body;
+
+    if (!id) {
+      return res.status(400).send({ error: true, message: 'Tutor ID is required' });
+    }
+
     const fields = Object.keys(updates).map(field => `${field} = ?`).join(', ');
     const values = Object.values(updates);
-    await pool.query(`UPDATE tutors SET ${fields} WHERE id_tutor = ?`, [...values, userId]);
+
+    const [result] = await pool.query(
+      `UPDATE tutors SET ${fields} WHERE id_tutor = ?`,
+      [...values, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: true, message: 'Tutor profile not found' });
+    }
+
     return res.send({ error: false, message: 'Tutor profile updated successfully' });
   } catch (error) {
     console.error('Error updating tutor profile:', error.message);
@@ -47,8 +61,18 @@ const updateTutorProfile = async (req, res) => {
 
 const deleteTutorProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    await pool.query('DELETE FROM tutors WHERE id_tutor = ?', [userId]);
+    const { id } = req.params; // Get the tutor ID from the route parameter
+
+    if (!id) {
+      return res.status(400).send({ error: true, message: 'Tutor ID is required' });
+    }
+
+    const [result] = await pool.query('DELETE FROM tutors WHERE id_tutor = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: true, message: 'Tutor profile not found' });
+    }
+
     return res.send({ error: false, message: 'Tutor profile deleted successfully' });
   } catch (error) {
     console.error('Error deleting tutor profile:', error.message);

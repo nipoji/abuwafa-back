@@ -12,8 +12,8 @@ const router = express.Router();
 
 router.get('/profile', verifyToken, getTutorProfile);
 router.post('/profile', verifyToken, createTutorProfile);
-router.patch('/profile', verifyToken, updateTutorProfile);
-router.delete('/profile', verifyToken, deleteTutorProfile);
+router.patch('/profile/:id', verifyToken, updateTutorProfile);
+router.delete('/profile/:id', verifyToken, deleteTutorProfile);
 
 module.exports = {
   routes: router

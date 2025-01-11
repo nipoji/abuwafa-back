@@ -36,11 +36,25 @@ const createStudentProfile = async (req, res) => {
 
 const updateStudentProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { id } = req.params; // Get the student ID from the route parameter
     const updates = req.body;
+
+    if (!id) {
+      return res.status(400).send({ error: true, message: 'Student ID is required' });
+    }
+
     const fields = Object.keys(updates).map(field => `${field} = ?`).join(', ');
     const values = Object.values(updates);
-    await pool.query(`UPDATE students SET ${fields} WHERE id_student = ?`, [...values, userId]);
+
+    const [result] = await pool.query(
+      `UPDATE students SET ${fields} WHERE id_student = ?`,
+      [...values, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: true, message: 'Student profile not found' });
+    }
+
     return res.send({ error: false, message: 'Student profile updated successfully' });
   } catch (error) {
     console.error('Error updating student profile:', error.message);
@@ -50,14 +64,25 @@ const updateStudentProfile = async (req, res) => {
 
 const deleteStudentProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    await pool.query('DELETE FROM students WHERE id_student = ?', [userId]);
+    const { id } = req.params; // Get the student ID from the route parameter
+
+    if (!id) {
+      return res.status(400).send({ error: true, message: 'Student ID is required' });
+    }
+
+    const [result] = await pool.query('DELETE FROM students WHERE id_student = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: true, message: 'Student profile not found' });
+    }
+
     return res.send({ error: false, message: 'Student profile deleted successfully' });
   } catch (error) {
     console.error('Error deleting student profile:', error.message);
     return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
+
 
 module.exports = {
   getStudentProfile,
