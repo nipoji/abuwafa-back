@@ -6,12 +6,12 @@ const getStudentProfile = async (req, res) => {
     const userId = req.user.id; // Decoded ID from token
     console.log("Decoded user ID:", userId); // Log for debugging
 
-    const [rows] = await pool.query('SELECT * FROM students WHERE id_student = ?', [userId]);
+    const [rows] = await pool.query('SELECT * FROM students');
     if (rows.length === 0) {
       return res.status(404).send({ error: true, message: 'Student profile not found' });
     }
 
-    return res.send({ error: false, message: 'Profile fetched successfully', profile: rows[0] });
+    return res.send({ error: false, message: 'Profile fetched successfully', profile: rows });
   } catch (error) {
     console.error('Error fetching student profile:', error.message);
     return res.status(500).send({ error: true, message: 'Internal server error' });

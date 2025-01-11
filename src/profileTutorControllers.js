@@ -4,11 +4,11 @@ const pool = require('../database/db');
 const getTutorProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const [rows] = await pool.query('SELECT * FROM tutors WHERE id_tutor = ?', [userId]);
+    const [rows] = await pool.query('SELECT * FROM tutors');
     if (rows.length === 0) {
       return res.status(404).send({ error: true, message: 'Tutor profile not found' });
     }
-    return res.send({ error: false, message: 'Profile fetched successfully', profile: rows[0] });
+    return res.send({ error: false, message: 'Profile fetched successfully', profile: rows });
   } catch (error) {
     console.error('Error fetching tutor profile:', error.message);
     return res.status(500).send({ error: true, message: 'Internal server error' });
