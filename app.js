@@ -11,6 +11,7 @@ const attendanceRoutes = require("./src/attendance-routes");
 const paycheckRoutes = require("./src/paycheck-routes");
 const invoiceRoutes = require("./src/invoice-routes");
 const monthlyReportRoutes = require("./src/monthlyReport-routes");
+const subjectRoutes = require("./src/subject-routes");
 const { generateMonthlyReports, testGenerateReports } = require("./src/monthlyReport");
 const cors = require("cors"); // CORS middleware for cross-origin requests
 const morgan = require("morgan"); // Logging middleware
@@ -41,8 +42,9 @@ app.use("/api", scheduleRoutes.routes);
 app.use("/api", attendanceRoutes.routes);
 app.use("/api", paycheckRoutes.routes);
 app.use("/api", invoiceRoutes.routes);
+app.use("/api", subjectRoutes.routes);
 app.use('/api/', monthlyReportRoutes);
-testGenerateReports(1);
+testGenerateReports(60);
 
 // Profile routes
 app.use("/api/students", studentProfileRoutes.routes);

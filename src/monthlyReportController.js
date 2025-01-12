@@ -7,13 +7,16 @@ require("dotenv").config();
 const storage = new Storage({
   keyFilename: path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS),
 });
-const bucketName = process.env.REPORT_BUCKET;
+const bucketName = process.env.GCS_BUCKET_NAME;
 
 const getMonthlyReport = (req, res) => {
   const reportId = req.params.id;
 
   db.query('SELECT * FROM monthly_report WHERE id = ?', [reportId], (err, results) => {
-    if (err) return res.status(500).send(err);
+    if (err) {
+      console.error('Database query error:', err.message);
+      return res.status(500).send('Internal Server Error');
+    }
     if (results.length === 0) return res.status(404).send('Report not found');
 
     const gcsPath = results[0].file;
