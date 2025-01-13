@@ -1,44 +1,95 @@
 // scheduleControllers.js
-const Schedule = require('./schedule');
-const db = require('../database/db');
+const Schedule = require("./schedule");
+const db = require("../database/db");
 
 const createSchedule = async (req, res) => {
   try {
-    const { id_schedule, student_name, tutor_name, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session } = req.body;
+    const {
+      id_schedule,
+      student_name,
+      tutor_name,
+      day,
+      date,
+      subject,
+      time,
+      method,
+      link,
+      curriculum,
+      time_duration,
+      total_session,
+    } = req.body;
 
-    if (!student_name || !tutor_name || !day || !date || !subject || !time || !method || !curriculum || !grade || !time_duration || !total_session) {
+    if (
+      !student_name ||
+      !tutor_name ||
+      !day ||
+      !date ||
+      !subject ||
+      !time ||
+      !method ||
+      !curriculum ||
+      !time_duration ||
+      !total_session
+    ) {
       return res.status(400).send({
         error: true,
-        message: 'All fields except link and id_schedule are required'
+        message: "All fields except link and id_schedule are required",
       });
     }
 
     // Find id_student based on student_name
-    const [studentResult] = await db.execute(`SELECT id_student FROM students WHERE student_name = ?`, [student_name]);
+    const [studentResult] = await db.execute(
+      `SELECT id_student FROM students WHERE student_name = ?`,
+      [student_name]
+    );
     if (studentResult.length === 0) {
-      return res.status(404).send({ error: true, message: `Student '${student_name}' not found` });
+      return res
+        .status(404)
+        .send({ error: true, message: `Student '${student_name}' not found` });
     }
     const id_student = studentResult[0].id_student;
 
     // Find id_tutor based on tutor_name
-    const [tutorResult] = await db.execute(`SELECT id_tutor FROM tutors WHERE tutor_name = ?`, [tutor_name]);
+    const [tutorResult] = await db.execute(
+      `SELECT id_tutor FROM tutors WHERE tutor_name = ?`,
+      [tutor_name]
+    );
     if (tutorResult.length === 0) {
-      return res.status(404).send({ error: true, message: `Tutor '${tutor_name}' not found` });
+      return res
+        .status(404)
+        .send({ error: true, message: `Tutor '${tutor_name}' not found` });
     }
     const id_tutor = tutorResult[0].id_tutor;
 
     // Create a new schedule
-    const schedule = new Schedule(id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session);
+    const schedule = new Schedule(
+      id_schedule,
+      student_name,
+      id_student,
+      tutor_name,
+      id_tutor,
+      day,
+      date,
+      subject,
+      time,
+      method,
+      link,
+      curriculum,
+      time_duration,
+      total_session
+    );
     await schedule.save();
 
     return res.status(201).send({
       error: false,
-      message: 'Schedule created successfully',
-      id: schedule.id
+      message: "Schedule created successfully",
+      id: schedule.id,
     });
   } catch (error) {
     console.error("Error creating schedule:", error.message);
-    return res.status(500).send({ error: true, message: 'Internal server error' });
+    return res
+      .status(500)
+      .send({ error: true, message: "Internal server error" });
   }
 };
 
@@ -58,12 +109,14 @@ const listSchedules = async (req, res) => {
 
     return res.send({
       error: false,
-      message: 'Schedules fetched successfully',
-      schedules
+      message: "Schedules fetched successfully",
+      schedules,
     });
   } catch (error) {
     console.error("Error listing schedules:", error.message);
-    return res.status(500).send({ error: true, message: 'Internal server error' });
+    return res
+      .status(500)
+      .send({ error: true, message: "Internal server error" });
   }
 };
 
@@ -73,10 +126,12 @@ const updateSchedule = async (req, res) => {
     const updates = req.body;
 
     await Schedule.update(scheduleId, updates);
-    return res.send({ error: false, message: 'Schedule updated successfully' });
+    return res.send({ error: false, message: "Schedule updated successfully" });
   } catch (error) {
     console.error("Error updating schedule:", error.message);
-    return res.status(500).send({ error: true, message: 'Internal server error' });
+    return res
+      .status(500)
+      .send({ error: true, message: "Internal server error" });
   }
 };
 
@@ -84,10 +139,12 @@ const deleteSchedule = async (req, res) => {
   try {
     const { scheduleId } = req.params;
     await Schedule.delete(scheduleId);
-    return res.send({ error: false, message: 'Schedule deleted successfully' });
+    return res.send({ error: false, message: "Schedule deleted successfully" });
   } catch (error) {
     console.error("Error deleting schedule:", error.message);
-    return res.status(500).send({ error: true, message: 'Internal server error' });
+    return res
+      .status(500)
+      .send({ error: true, message: "Internal server error" });
   }
 };
 
@@ -95,5 +152,5 @@ module.exports = {
   createSchedule,
   listSchedules,
   updateSchedule,
-  deleteSchedule
+  deleteSchedule,
 };
