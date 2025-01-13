@@ -61,7 +61,7 @@ const userLogin = async (req, res) => {
   
       // Generate JWT token
       const token = jwt.sign(
-        { id: user[idColumn], username: user.username, role },
+        { id: user[idColumn] },
         process.env.KEY_JWT,
         { expiresIn: "1d" }
       );
