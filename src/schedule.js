@@ -2,7 +2,7 @@
 const db = require('../database/db');
 
 class Schedule {
-  constructor(id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session) {
+  constructor(id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, id_subject, time, method, link, curriculum, grade, time_duration, total_session) {
     this.id = id_schedule; // Optional manual ID
     this.student_name = student_name;
     this.id_student = id_student;
@@ -11,6 +11,7 @@ class Schedule {
     this.day = day;
     this.date = date;
     this.subject = subject;
+    this.id_subject = id_subject;
     this.time = time;
     this.method = method;
     this.link = link;
@@ -22,9 +23,9 @@ class Schedule {
 
   async save() {
     const [result] = await db.execute(
-      `INSERT INTO schedules (id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [this.id, this.student_name, this.id_student, this.tutor_name, this.id_tutor, this.day, this.date, this.subject, this.time, this.method, this.link, this.curriculum, this.grade, this.time_duration, this.total_session]
+      `INSERT INTO schedules (id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, id_subject, time, method, link, curriculum, grade, time_duration, total_session)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [this.id, this.student_name, this.id_student, this.tutor_name, this.id_tutor, this.day, this.date, this.subject, this.id_subject, this.time, this.method, this.link, this.curriculum, this.grade, this.time_duration, this.total_session]
     );
     if (!this.id) {
       this.id = result.insertId; // Use auto-generated ID if not provided

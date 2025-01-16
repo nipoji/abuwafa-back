@@ -12,10 +12,10 @@ const paycheckRoutes = require("./src/paycheck-routes");
 const invoiceRoutes = require("./src/invoice-routes");
 const monthlyReportRoutes = require("./src/monthlyReport-routes");
 const subjectRoutes = require("./src/subject-routes");
-const { generateMonthlyReports, testGenerateReports } = require("./src/monthlyReport");
 const cors = require("cors"); // CORS middleware for cross-origin requests
 const morgan = require("morgan"); // Logging middleware
 require("dotenv").config();
+require("./src/cronjob");
 
 const app = express();
 
@@ -43,8 +43,7 @@ app.use("/api", attendanceRoutes.routes);
 app.use("/api", paycheckRoutes.routes);
 app.use("/api", invoiceRoutes.routes);
 app.use("/api", subjectRoutes.routes);
-app.use('/api/', monthlyReportRoutes);
-testGenerateReports(60);
+app.use("/api", monthlyReportRoutes.routes);
 
 // Profile routes
 app.use("/api/students", studentProfileRoutes.routes);

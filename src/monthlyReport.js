@@ -1,140 +1,155 @@
-// File: monthlyReport.js
-const fs = require('fs');
-const path = require('path');
-const { jsPDF } = require('jspdf');
-const { Storage } = require('@google-cloud/storage');
-const db = require('../database/db');
+const { jsPDF } = require("jspdf");
+require("jspdf-autotable");
+const path = require("path");
+const { createCanvas, loadImage } = require("canvas");
+const db = require("../database/db");
+const fs = require("fs");
 
-const storage = new Storage({
-  keyFilename: path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS),
-});
-const bucketName = process.env.GCS_BUCKET_NAME;
+async function generateMonthlyReport(id_student) {
+  const doc = new jsPDF("portrait", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.width;
+  const margin = 14;
+  let currentY = margin;
 
-const uploadToGCS = async (filePath, destination) => {
+  const logoPath = path.resolve(__dirname, "../assets/abuwafalogo.png");
+
   try {
-    await storage.bucket(bucketName).upload(filePath, {
-      destination,
-      gzip: true,
-    });
-    console.log(`Uploaded ${filePath} to ${bucketName}/${destination}`);
-  } catch (err) {
-    console.error(`Error uploading to GCS: ${err.message}`);
-  }
-};
+    // Load logo image
+    const img = await loadImage(logoPath);
+    const imgWidth = img.width;
+    const imgHeight = img.height;
 
-const generatePDF = (reportData, outputPath) => {
-  try {
-    const doc = new jsPDF();
+    const canvas = createCanvas(imgWidth, imgHeight);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+    const base64Image = canvas.toDataURL("image/png");
 
-    // Header
-    doc.setFontSize(20);
-    doc.text(`${reportData.month} Report ${reportData.year}`, 10, 20);
-    const logoPath = path.resolve(__dirname, '../assets/abuwfa-logo.png');
-    doc.addImage(logoPath, 'PNG', 170, 10, 20, 20);
+    // Query student and report details
+    const [studentDetails] = await db.query(
+      `SELECT 
+        student_name, 
+        id_student, 
+        curriculum, 
+        grade, 
+        DATE_FORMAT(date, '%M') AS month, 
+        DATE_FORMAT(date, '%Y') AS year 
+      FROM schedules 
+      WHERE id_student = ?`, 
+      [id_student]
+    );
 
-    doc.setFontSize(12);
-    doc.text(`NAME: ${reportData.student_name} (${reportData.id_student})`, 10, 40);
-    doc.text(`SUBJECT / LEVEL: ${reportData.curriculum} & ${reportData.grade}`, 10, 50);
-
-    doc.setLineWidth(0.5);
-    doc.line(10, 55, 200, 55);
-
-    // Table header
-    doc.setFontSize(10);
-    doc.text('DATE', 10, 65);
-    doc.text('SUBJECT', 40, 65);
-    doc.text('TUTOR', 80, 65);
-    doc.text('TOPIC', 120, 65);
-    doc.text('RESULT', 160, 65);
-
-    // Table content
-    let y = 75;
-    reportData.records.forEach(record => {
-      doc.text(record.date, 10, y);
-      doc.text(record.curriculum, 40, y);
-      doc.text(record.tutor_name, 80, y);
-      doc.text(record.topic, 120, y);
-      doc.text(record.result, 160, y);
-      y += 10;
-    });
-
-    const pdfBuffer = doc.output('arraybuffer');
-    fs.writeFileSync(outputPath, Buffer.from(pdfBuffer));
-    console.log(`PDF generated at ${outputPath}`);
-  } catch (err) {
-    console.error(`Error generating PDF: ${err.message}`);
-  }
-};
-
-const generateMonthlyReports = () => {
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  db.query('SELECT * FROM schedules WHERE MONTH(date) = ? AND YEAR(date) = ?', [currentMonth, currentYear], (err, results) => {
-    if (err) {
-      console.error('Database query error:', err.message);
-      return;
+    if (!studentDetails || studentDetails.length === 0) {
+      throw new Error(`Student with ID ${id_student} not found`);
     }
 
-    const studentData = {};
+    const {
+      student_name,
+      curriculum,
+      grade,
+      month,
+      year,
+    } = studentDetails[0];
 
-    results.forEach(row => {
-      if (!studentData[row.id_student]) {
-        studentData[row.id_student] = {
-          student_name: row.student_name,
-          id_student: row.id_student,
-          curriculum: row.curriculum,
-          grade: row.grade,
-          records: [],
-        };
-      }
+    // Add header text and logo
+    const maxHeaderHeight = 15;
+    const headerImageWidth = (maxHeaderHeight / imgHeight) * imgWidth;
+    const headerImageHeight = maxHeaderHeight;
+    const headerImageX = pageWidth - margin - headerImageWidth;
+    const headerVerticalCenter = currentY + maxHeaderHeight / 2;
 
-      studentData[row.id_student].records.push({
-        date: row.date,
-        curriculum: row.curriculum,
-        tutor_name: row.tutor_name,
-        topic: row.topic,
-        result: row.result,
-      });
+    doc.setFontSize(18).setTextColor(40).setFont("helvetica", "bold");
+    doc.text(`${month} Report ${year}`, margin, headerVerticalCenter + 2);
+    doc.addImage(
+      base64Image,
+      "PNG",
+      headerImageX,
+      headerVerticalCenter - headerImageHeight / 2,
+      headerImageWidth,
+      headerImageHeight
+    );
+
+    currentY += maxHeaderHeight + 4;
+    doc.setDrawColor(0).setLineWidth(0.5).line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 8;
+
+    // Add personal details
+    doc.setFontSize(12).setFont("helvetica", "normal");
+    const personalLeft = `NAME: ${student_name} (${id_student})`;
+    const personalRight = `SUBJECT / LEVEL: ${curriculum} & ${grade}`;
+    doc.text(personalLeft, margin, currentY);
+    doc.text(personalRight, pageWidth - margin - doc.getTextWidth(personalRight), currentY);
+    currentY += 5;
+
+    // Fetch attendance data
+    const [attendanceData] = await db.query(
+      "SELECT date, subject, tutor_name, topic, result FROM attendance WHERE id_student = ?",
+      [id_student]
+    );
+
+    // Add attendance table
+    doc.autoTable({
+      startY: currentY,
+      head: [["DATE", "SUB", "TUTOR", "TOPIC", "RESULT"]],
+      body: attendanceData.map((row) => [
+        row.date,
+        row.subject,
+        row.tutor_name,
+        row.topic,
+        row.result,
+      ]),
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 60 },
+        4: { cellWidth: 60 },
+      },
+      headStyles: { fillColor: [235, 124, 90], halign: "center" },
     });
 
-    Object.values(studentData).forEach(async (reportData) => {
-      const outputPath = path.join(__dirname, 'reports', `${reportData.id_student}_${currentMonth}_${currentYear}.pdf`);
-      const gcsPath = `reports/${reportData.id_student}_${currentMonth}_${currentYear}.pdf`;
+    // Save PDF to buffer
+    const reportFilePath = path.join(
+      __dirname,
+      "../reports",
+      `Monthly_Report_${student_name}_${month}_${year}.pdf`
+    );
+    const pdfBuffer = doc.output("arraybuffer");
+    fs.writeFileSync(reportFilePath, Buffer.from(pdfBuffer));
 
-      generatePDF({
-        ...reportData,
-        month: new Date().toLocaleString('default', { month: 'long' }),
-        year: currentYear,
-      }, outputPath);
+    // Mark attendance and save report details in the database
+    await db.query("INSERT INTO monthly_reports (id_student, student_name, month, year, file_path) VALUES (?, ?, ?, ?, ?)", 
+      [id_student, student_name, month, year, reportFilePath]
+    );
+    await db.query("UPDATE attendance SET report_generated = TRUE WHERE id_student = ?", [id_student]);
 
-      await uploadToGCS(outputPath, gcsPath);
+    console.log(`Report generated: ${reportFilePath}`);
+  } catch (err) {
+    console.error("Error generating report:", err);
+  }
+}
 
-      const id_monthlyReport = `${reportData.id_student}_${currentMonth}_${currentYear}`;
-      const id_student = reportData.id_student;
+async function generateMonthlyReportsForAllStudents() {
+  try {
+    const [studentsWithoutReports] = await db.query(`
+      SELECT DISTINCT a.id_student, s.student_name 
+      FROM attendance a
+      JOIN students s ON a.id_student = s.id_student
+      LEFT JOIN monthly_reports mr 
+        ON a.id_student = mr.id_student 
+        AND mr.month = MONTH(CURDATE()) 
+        AND mr.year = YEAR(CURDATE())
+      WHERE mr.id_monthlyReport IS NULL
+    `);
 
-      db.query('INSERT INTO monthly_report (id_monthlyReport, id_student, student_name, month, file) VALUES (?, ?, ?, ?, ?)', [
-        id_monthlyReport,
-        id_student,
-        reportData.student_name,
-        `${currentMonth}-${currentYear}`,
-        gcsPath,
-      ], (err) => {
-        if (err) {
-          console.error('Error inserting report data:', err.message);
-        } else {
-          console.log(`Report data for ${id_student} inserted successfully.`);
-        }
-      });
-    });
-  });
-};
+    for (const student of studentsWithoutReports) {
+      await generateMonthlyReport(student.id_student);
+    }
 
-const testGenerateReports = (intervalMinutes) => {
-  setInterval(() => {
-    console.log('Generating test reports...');
-    generateMonthlyReports();
-  }, intervalMinutes * 60 * 1000);
-};
+    console.log("All pending reports have been generated.");
+  } catch (err) {
+    console.error("Error generating monthly reports:", err);
+  }
+}
 
-module.exports = { generatePDF, generateMonthlyReports, testGenerateReports };
+module.exports = { generateMonthlyReport, generateMonthlyReportsForAllStudents };

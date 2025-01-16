@@ -4,9 +4,9 @@ const db = require('../database/db');
 
 const createSchedule = async (req, res) => {
   try {
-    const { id_schedule, student_name, tutor_name, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session } = req.body;
+    const { id_schedule, student_name, tutor_name, day, date, id_subject, time, method, link, curriculum, time_duration, total_session } = req.body;
 
-    if (!student_name || !tutor_name || !day || !date || !subject || !time || !method || !curriculum || !grade || !time_duration || !total_session) {
+    if (!student_name || !tutor_name || !day || !date || !id_subject || !time || !method || !time_duration || !total_session) {
       return res.status(400).send({
         error: true,
         message: 'All fields except link and id_schedule are required'
@@ -27,8 +27,22 @@ const createSchedule = async (req, res) => {
     }
     const id_tutor = tutorResult[0].id_tutor;
 
+    // Mengambil subject berdasarkan id_subject
+    const [subjectResult] = await db.execute(`SELECT subject FROM subjects WHERE id_subject = ?`, [id_subject]);
+    if (subjectResult.length === 0) {
+      return res.status(404).send({ error: true, message: `Subject with ID '${id_subject}' not found` });
+    }
+    const subject = subjectResult[0].subject;
+
+    // Mengambil grade otomatis berdasar id_student
+    const [gradeResult] = await db.execute(`SELECT grade FROM students WHERE id_student = ?`, [id_student]);
+    if (gradeResult.length === 0) {
+      return res.status(404).send({ error: true, message: `Student ID '${id_student}' not found` });
+    }
+    const grade = gradeResult[0].grade;
+
     // Create a new schedule
-    const schedule = new Schedule(id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, time, method, link, curriculum, grade, time_duration, total_session);
+    const schedule = new Schedule(id_schedule, student_name, id_student, tutor_name, id_tutor, day, date, subject, id_subject, time, method, link, curriculum, grade, time_duration, total_session);
     await schedule.save();
 
     return res.status(201).send({

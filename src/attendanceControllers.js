@@ -29,22 +29,14 @@ const uploadImageToGCS = async (file) => {
 const createAttendance = async (req, res) => {
   try {
     const {
-      id_attendance,
-      tutor_name,
-      id_tutor,
-      student_name,
-      id_student,
-      time,
-      date,
-      session,
-      method,
-      subject,
-      topic,
-      result,
-      attendance_status,
+      id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
+      method, subject, id_subject, topic, result, attendance_status
     } = req.body;
 
-    if (!tutor_name || !id_tutor || !student_name || !id_student || !time || !date || !session || !method || !subject || !topic || !attendance_status) {
+    if (
+      !id_schedule || !tutor_name || !id_tutor || !student_name || !id_student || 
+      !time || !date || !session || !method || !subject || !id_subject || !topic || !attendance_status
+    ) {
       return res.status(400).send({
         error: true,
         message: 'All fields except id_attendance and image are required',
@@ -57,20 +49,8 @@ const createAttendance = async (req, res) => {
     }
 
     const attendance = new Attendance(
-      id_attendance,
-      tutor_name,
-      id_tutor,
-      student_name,
-      id_student,
-      time,
-      date,
-      session,
-      method,
-      subject,
-      image,
-      topic,
-      result,
-      attendance_status
+      id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
+      method, subject, id_subject, image, topic, result, attendance_status
     );
     await attendance.save();
 
@@ -155,5 +135,5 @@ module.exports = {
   createAttendance,
   listAttendances,
   listAttendancesByTutor,
-  updateAttendance
+  updateAttendance,
 };
