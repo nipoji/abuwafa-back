@@ -10,7 +10,7 @@ env:
   GAR_LOCATION: us-central1
   GAR_REPOSITORY_NAME: abuwafa-image-registry
   REGION: us-central1
-  SERVICE: abuwafa-api
+  SERVICE: abuwafa-backend
 
 jobs:
   deploy:
@@ -29,21 +29,12 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
 
-      - name: Show gcloud version
-        run: gcloud --version
-
       - name: Configure Docker to use Google Cloud
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Show Docker Info
-        run: docker info
-
-      - name: Build Docker Image
+      - name: Build Docker image and Push to Artifact Registry
         run: |
-          docker build \
-            -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}" \
-            --build-arg GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }} \
-            .
+          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}" .
 
       - name: Push Docker image to Artifact Registry
         run: |

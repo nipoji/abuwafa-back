@@ -32,7 +32,6 @@ ENV DATABASE_URL=""
 ENV DB_CA=""
 ENV KEY_JWT=""
 ENV GCS_BUCKET_NAME=""
-ENV GOOGLE_APPLICATION_CREDENTIALS=""
 
 # Perintah untuk menjalankan aplikasi
 CMD ["npm", "run", "start"]
