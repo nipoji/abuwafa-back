@@ -29,11 +29,6 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
 
-      - name: Set GOOGLE_APPLICATION_CREDENTIALS environment variable
-        run: |
-          echo "${{ secrets.GCLOUD_CREDENTIALS }}" > $HOME/gcloud-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json" >> $GITHUB_ENV
-
       - name: Show gcloud version
         run: gcloud --version
 
@@ -43,9 +38,15 @@ jobs:
       - name: Show Docker Info
         run: docker info
 
-      - name: Build Docker image and Push to Artifact Registry
+      - name: Build Docker Image
         run: |
-          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}" .
+          docker build \
+            -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}" \
+            --build-arg GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }} \
+            .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
           docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
 
       - name: Deploy to Cloud Run
@@ -58,11 +59,10 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }},
             DB_CA=${{ secrets.DB_CA }},
             KEY_JWT=${{ secrets.KEY_JWT }},
-            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},
-            GOOGLE_APPLICATION_CREDENTIALS=${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
           ingress: "all"
           timeout: "300s"
-          health_check: "/health" 
+          health_check: "/health"
 
       - name: Show Output URL
         run: echo ${{ steps.deploy.outputs.url }}
