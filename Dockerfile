@@ -34,4 +34,4 @@ ENV KEY_JWT=""
 ENV GCS_BUCKET_NAME=""
 
 # Perintah untuk menjalankan aplikasi
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]
