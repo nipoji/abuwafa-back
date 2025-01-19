@@ -3,7 +3,7 @@ name: Build and Deploy to Cloud Run
 on:
   push:
     branches:
-      - ["main"]
+      - main
 
 env:
   PROJECT_ID: abuwafa-learning
@@ -55,4 +55,4 @@ jobs:
             GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
 
       - name: Show Output URL
-        run: echo "Deployment complete."
+        run: echo ${{ steps.deploy.outputs.url }}
