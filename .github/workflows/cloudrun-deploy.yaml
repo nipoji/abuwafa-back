@@ -58,7 +58,8 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }},
             DB_CA=${{ secrets.DB_CA }},
             KEY_JWT=${{ secrets.KEY_JWT }},
-            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }},
+            GOOGLE_APPLICATION_CREDENTIALS=${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           ingress: "all"
           timeout: "300s"
           health_check: "/health" 

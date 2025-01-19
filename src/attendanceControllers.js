@@ -4,14 +4,13 @@ const path = require("path");
 const Attendance = require("./attendance");
 const dotenv = require("dotenv");
 
-const storage = new Storage({
-  keyFilename: path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS),
-});
+const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME;
 
 const uploadImageToGCS = async (file) => {
   const { originalname, buffer } = file;
-  const blob = storage.bucket(bucketName).file(Date.now() + "-" + originalname);
+  const filePath = `attendance_images/${Date.now()}-${originalname}`; // Structured file path
+  const blob = storage.bucket(bucketName).file(filePath);
   const stream = blob.createWriteStream({
     resumable: false,
   });
@@ -23,7 +22,7 @@ const uploadImageToGCS = async (file) => {
     stream.on("error", reject);
   });
 
-  return `https://storage.googleapis.com/${bucketName}/${blob.name}`;
+  return filePath; // Return structured file path
 };
 
 const createAttendance = async (req, res) => {
@@ -58,7 +57,7 @@ const createAttendance = async (req, res) => {
 
     let image = null;
     if (req.file) {
-      image = await uploadImageToGCS(req.file);
+      image = await uploadImageToGCS(req.file); // Get structured file path
     }
 
     const attendance = new Attendance(
@@ -74,7 +73,7 @@ const createAttendance = async (req, res) => {
       method,
       subject,
       id_subject,
-      image,
+      image, // Save the structured file path
       topic,
       result,
       attendance_status

@@ -27,11 +27,11 @@ class Attendance {
   async save() {
     const [result] = await db.execute(
       `INSERT INTO attendance 
-      (id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
+      ( id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
       method, subject, id_subject, image, topic, result, attendance_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        this.id_attendance, this.id_schedule, this.tutor_name, this.id_tutor, this.student_name, 
+        this.id_schedule, this.tutor_name, this.id_tutor, this.student_name, 
         this.id_student, this.time, this.date, this.session, this.method, this.subject, 
         this.id_subject, this.image, this.topic, this.result, this.attendance_status
       ]

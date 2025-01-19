@@ -4,6 +4,9 @@ const path = require("path");
 const { createCanvas, loadImage } = require("canvas");
 const db = require("../database/db");
 const fs = require("fs");
+const { Storage } = require("@google-cloud/storage"); // Import the Google Cloud Storage client
+const storage = new Storage(); // Initialize the client
+const bucketName = process.env.GCS_BUCKET_NAME; // Replace with your bucket name
 
 async function generateMonthlyReport(id_student) {
   const doc = new jsPDF("portrait", "mm", "a4");
@@ -34,7 +37,7 @@ async function generateMonthlyReport(id_student) {
         DATE_FORMAT(date, '%M') AS month, 
         DATE_FORMAT(date, '%Y') AS year 
       FROM schedules 
-      WHERE id_student = ?`, 
+      WHERE id_student = ?`,
       [id_student]
     );
 
@@ -42,13 +45,7 @@ async function generateMonthlyReport(id_student) {
       throw new Error(`Student with ID ${id_student} not found`);
     }
 
-    const {
-      student_name,
-      curriculum,
-      grade,
-      month,
-      year,
-    } = studentDetails[0];
+    const { student_name, curriculum, grade, month, year } = studentDetails[0];
 
     // Add header text and logo
     const maxHeaderHeight = 15;
@@ -100,32 +97,36 @@ async function generateMonthlyReport(id_student) {
       styles: { fontSize: 10, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 25 },
-        1: { cellWidth: 20 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 60 },
-        4: { cellWidth: 60 },
+        1: { cellWidth: 20, halign: "center" },
+        2: { cellWidth: 20, halign: "center" },
+        3: { cellWidth: 60, halign: "center" },
+        4: { cellWidth: 60, halign: "center" },
       },
       headStyles: { fillColor: [235, 124, 90], halign: "center" },
     });
 
     // Save PDF to buffer
-    const reportFilePath = path.join(
-      __dirname,
-      "../reports",
-      `Monthly_Report_${student_name}_${month}_${year}.pdf`
-    );
     const pdfBuffer = doc.output("arraybuffer");
-    fs.writeFileSync(reportFilePath, Buffer.from(pdfBuffer));
 
-    // Mark attendance and save report details in the database
-    await db.query("INSERT INTO monthly_reports (id_student, student_name, month, year, file_path) VALUES (?, ?, ?, ?, ?)", 
-      [id_student, student_name, month, year, reportFilePath]
+    // Generate a unique filename for the report
+    const fileName = `Monthly_Report_${student_name}_${month}_${year}.pdf`;
+    const filePath = `monthly_reports/${fileName}`; // Structured file path
+
+    // Upload to Google Cloud Storage
+    const file = storage.bucket(bucketName).file(filePath);
+    await file.save(Buffer.from(pdfBuffer));
+
+    // Save the relative file path in the database
+    await db.query(
+      "INSERT INTO monthly_reports (id_student, student_name, month, year, file_path) VALUES (?, ?, ?, ?, ?)",
+      [id_student, student_name, month, year, filePath]
     );
-    await db.query("UPDATE attendance SET report_generated = TRUE WHERE id_student = ?", [id_student]);
 
-    console.log(`Report generated: ${reportFilePath}`);
+    console.log(`Report generated and uploaded to: ${filePath}`);
+    return filePath;
   } catch (err) {
     console.error("Error generating report:", err);
+    throw err;
   }
 }
 

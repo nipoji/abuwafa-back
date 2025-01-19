@@ -10,9 +10,9 @@ class Subject {
 
   async save() {
     const [result] = await db.execute(
-      `INSERT INTO subjects (id_subject, subject, description)
-       VALUES (?, ?, ?)`,
-      [this.id, this.subject, this.description]
+      `INSERT INTO subjects ( subject, description)
+       VALUES ( ?, ?)`,
+      [this.subject, this.description]
     );
     if (!this.id) {
       this.id = result.insertId; // Use auto-generated ID if not provided
