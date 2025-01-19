@@ -27,7 +27,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"  # Service account untuk GitHub Actions
+          credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
 
       - name: Set up Google Cloud SDK
         run: |
@@ -49,10 +49,10 @@ jobs:
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
           env_vars: |
-            DATABASE_URL=${{ secrets.DATABASE_URL }}        # URL untuk Aiven Database
-            DB_CA=${{ secrets.DB_CA }}                      # CA cert untuk database Aiven
-            KEY_JWT=${{ secrets.KEY_JWT }}                  # JWT Key
-            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}  # Nama bucket GCS untuk penyimpanan file
+            DATABASE_URL=${{ secrets.DATABASE_URL }
+            DB_CA=${{ secrets.DB_CA }}
+            KEY_JWT=${{ secrets.KEY_JWT }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
 
       - name: Show Output URL
-        run: echo "Deployed URL: ${{ steps.deploy.outputs.url }}"
+        run: echo ${{ steps.deploy.outputs.url }}
