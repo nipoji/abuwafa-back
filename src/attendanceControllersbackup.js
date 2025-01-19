@@ -1,22 +1,30 @@
 // attendanceControllers.js
 const { Storage } = require("@google-cloud/storage");
-const Attendance = require("./attendance");
-const multer = require("multer");
 const path = require("path");
+const Attendance = require("./attendance");
+const dotenv = require("dotenv");
 
-// Define the storage configuration for multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Directory where images will be stored
-    cb(null, "uploads/attendances/");
-  },
-  filename: (req, file, cb) => {
-    // Use original filename with a timestamp to avoid naming collisions
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
+const storage = new Storage({
+  keyFilename: path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS),
 });
+const bucketName = process.env.GCS_BUCKET_NAME;
 
-const upload = multer({ storage });
+const uploadImageToGCS = async (file) => {
+  const { originalname, buffer } = file;
+  const blob = storage.bucket(bucketName).file(Date.now() + "-" + originalname);
+  const stream = blob.createWriteStream({
+    resumable: false,
+  });
+
+  stream.end(buffer);
+
+  await new Promise((resolve, reject) => {
+    stream.on("finish", resolve);
+    stream.on("error", reject);
+  });
+
+  return `https://storage.googleapis.com/${bucketName}/${blob.name}`;
+};
 
 const createAttendance = async (req, res) => {
   try {
@@ -273,82 +281,13 @@ const getAttendanceById = async (req, res) => {
   }
 };
 
-const listDistinctStudentsAndSubjects = async (req, res) => {
-  try {
-    // Kueri untuk mendapatkan student_name dan subject secara distinct
-    const result = await Attendance.listDistinctStudentsAndSubjects();
-
-    if (!result || result.length === 0) {
-      return res.status(404).send({
-        error: true,
-        message: "No distinct students and subjects found",
-      });
-    }
-
-    return res.send({
-      error: false,
-      message: "Distinct students and subjects fetched successfully",
-      data: result, // Pastikan array dikirim tanpa modifikasi
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching distinct students and subjects:",
-      error.message
-    );
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
-  }
-};
-
-const getAttendanceForCurrentMonthByIdStudent = async (req, res) => {
-  try {
-    const { id_student } = req.params;
-
-    if (!id_student) {
-      return res.status(400).send({
-        error: true,
-        message: "Student ID is required",
-      });
-    }
-
-    // Fetch attendance data for the current month
-    const attendanceData =
-      await Attendance.getAttendanceByIdStudentForCurrentMonth(id_student);
-
-    if (attendanceData.length === 0) {
-      return res.status(404).send({
-        error: false,
-        message: "No attendance records found for the current month",
-        data: [],
-      });
-    }
-
-    return res.status(200).send({
-      error: false,
-      message: "Attendance records fetched successfully",
-      data: attendanceData,
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching attendance for current month:",
-      error.message
-    );
-    return res.status(500).send({
-      error: true,
-      message: "Internal server error",
-    });
-  }
-};
-
 const updateAttendance = async (req, res) => {
   try {
     const { id_attendance } = req.params;
     const updates = req.body;
 
-    // Handle image upload if there's a new image in the request
     if (req.file) {
-      updates.image = req.file ? req.file.filename : null;
+      updates.image = await uploadImageToGCS(req.file);
     }
 
     const [result] = await Attendance.update(id_attendance, updates);
@@ -378,9 +317,6 @@ module.exports = {
   listAttendances,
   listAttendancesByTutor,
   listAttendancesByIdSchedule,
-  listDistinctStudentsAndSubjects,
   getAttendanceById,
-  getAttendanceForCurrentMonthByIdStudent,
   updateAttendance,
-  upload,
 };

@@ -1,10 +1,24 @@
 // attendance.js
-const db = require('../database/db');
+const db = require("../database/db");
 
 class Attendance {
   constructor(
-    id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
-    method, subject, id_subject, image, topic, result, attendance_status
+    id_attendance,
+    id_schedule,
+    tutor_name,
+    id_tutor,
+    student_name,
+    id_student,
+    time,
+    date,
+    session,
+    method,
+    subject,
+    id_subject,
+    image,
+    topic,
+    result,
+    attendance_status
   ) {
     this.id_attendance = id_attendance; // Optional manual ID
     this.id_schedule = id_schedule;
@@ -31,9 +45,22 @@ class Attendance {
       method, subject, id_subject, image, topic, result, attendance_status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        this.id_attendance, this.id_schedule, this.tutor_name, this.id_tutor, this.student_name, 
-        this.id_student, this.time, this.date, this.session, this.method, this.subject, 
-        this.id_subject, this.image, this.topic, this.result, this.attendance_status
+        this.id_attendance,
+        this.id_schedule,
+        this.tutor_name,
+        this.id_tutor,
+        this.student_name,
+        this.id_student,
+        this.time,
+        this.date,
+        this.session,
+        this.method,
+        this.subject,
+        this.id_subject,
+        this.image,
+        this.topic,
+        this.result,
+        this.attendance_status,
       ]
     );
     if (!this.id_attendance) {
@@ -80,13 +107,66 @@ class Attendance {
     const fields = Object.keys(updates);
     const values = Object.values(updates);
 
-    const setClause = fields.map((field) => `${field} = ?`).join(', ');
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
     values.push(id_attendance);
 
     return db.execute(
       `UPDATE attendance SET ${setClause} WHERE id_attendance = ?`,
       values
     );
+  }
+
+  static async listByIdSchedule(id_schedule) {
+    const [rows] = await db.execute(
+      `SELECT attendance.*, schedules.tutor_name, schedules.student_name, schedules.subject, schedules.id_subject 
+       FROM attendance 
+       JOIN schedules ON attendance.id_schedule = schedules.id_schedule 
+       WHERE attendance.id_schedule = ? 
+       ORDER BY attendance.date ASC, attendance.time ASC`,
+      [id_schedule]
+    );
+    return rows;
+  }
+
+  static async listDistinctStudentsAndSubjects() {
+    const [rows] = await db.execute(
+      `SELECT DISTINCT id_schedule, student_name, subject
+      FROM attendance`
+    );
+    return rows;
+  }
+
+  static async getById(id_attendance) {
+    const [rows] = await db.execute(
+      `SELECT attendance.*, schedules.tutor_name, schedules.student_name, schedules.subject, schedules.id_subject 
+       FROM attendance 
+       JOIN schedules ON attendance.id_schedule = schedules.id_schedule 
+       WHERE attendance.id_attendance = ?`,
+      [id_attendance]
+    );
+    return rows[0];
+  }
+
+  static async getAttendanceByIdStudentForCurrentMonth(id_student) {
+    const [rows] = await db.execute(
+      `
+        SELECT 
+        id_student,
+        student_name,
+        date, 
+        subject, 
+        tutor_name, 
+        topic, 
+        result 
+      FROM attendance 
+      WHERE id_student = ? 
+        AND MONTH(date) = MONTH(CURDATE()) 
+        AND YEAR(date) = YEAR(CURDATE())
+      ORDER BY subject ASC, date ASC
+      `,
+      [id_student]
+    );
+    return rows;
   }
 }
 

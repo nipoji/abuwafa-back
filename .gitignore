@@ -1,3 +1,6 @@
 .env
 node_modules/
+uploads/attendances
+uploads/monthly-report
+uploads/paychecks
 abuwafa-back-83c3eb47fe9c.json
