@@ -29,6 +29,11 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
 
+      - name: Set GOOGLE_APPLICATION_CREDENTIALS environment variable
+        run: |
+          echo "${{ secrets.GCLOUD_CREDENTIALS }}" > $HOME/gcloud-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json" >> $GITHUB_ENV
+
       - name: Show gcloud version
         run: gcloud --version
 
