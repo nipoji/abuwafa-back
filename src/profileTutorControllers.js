@@ -63,7 +63,6 @@ const createTutorProfile = async (req, res) => {
       phone_tutor,
       email,
       address,
-      city,
       status,
       courses_type,
       bank,
@@ -74,7 +73,7 @@ const createTutorProfile = async (req, res) => {
     } = req.body;
     const userId = req.user.id;
     await pool.query(
-      `INSERT INTO tutors (id_tutor, tutor_name, phone_tutor, email, address, city, status, courses_type, bank, no_rek, username, password, role)
+      `INSERT INTO tutors (id_tutor, tutor_name, phone_tutor, email, address, status, courses_type, bank, no_rek, username, password, role)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
@@ -82,7 +81,6 @@ const createTutorProfile = async (req, res) => {
         phone_tutor,
         email,
         address,
-        city,
         status,
         courses_type,
         bank,

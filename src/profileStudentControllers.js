@@ -66,7 +66,6 @@ const createStudentProfile = async (req, res) => {
       student_name,
       phone_student,
       parent_name,
-      city,
       address,
       status,
       package,
@@ -79,14 +78,13 @@ const createStudentProfile = async (req, res) => {
     } = req.body;
     const userId = req.user.id;
     await pool.query(
-      `INSERT INTO students (id_student, student_name, phone_student, parent_name, city, address, status, package, school, grade, curriculum, username, password, role)
+      `INSERT INTO students (id_student, student_name, phone_student, parent_name, address, status, package, school, grade, curriculum, username, password, role)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         student_name,
         phone_student,
         parent_name,
-        city,
         address,
         status,
         package,
