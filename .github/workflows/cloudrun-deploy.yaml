@@ -29,13 +29,14 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
 
-      - name: Set up Google Cloud SDK
-        run: |
-          echo "Setting up Google Cloud SDK"
-          gcloud components install gsutil
+      - name: Show gcloud version
+        run: gcloud --version
 
       - name: Configure Docker to use Google Cloud
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Show Docker Info
+        run: docker info
 
       - name: Build Docker image and Push to Artifact Registry
         run: |
@@ -49,9 +50,9 @@ jobs:
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
           env_vars: |
-            DATABASE_URL=${{ secrets.DATABASE_URL }},
-            DB_CA=${{ secrets.DB_CA }},
-            KEY_JWT=${{ secrets.KEY_JWT }},
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DB_CA=${{ secrets.DB_CA }}
+            KEY_JWT=${{ secrets.KEY_JWT }}
             GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
 
       - name: Show Output URL
