@@ -55,4 +55,4 @@ jobs:
             GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
 
       - name: Show Output URL
-        run: echo ${{ steps.deploy.outputs.url }}
+        run: echo "Deployment complete."
