@@ -49,9 +49,9 @@ jobs:
           region: ${{ env.REGION }}
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
           env_vars: |
-            DATABASE_URL=${{ secrets.DATABASE_URL }
-            DB_CA=${{ secrets.DB_CA }}
-            KEY_JWT=${{ secrets.KEY_JWT }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }},
+            DB_CA=${{ secrets.DB_CA }},
+            KEY_JWT=${{ secrets.KEY_JWT }},
             GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
 
       - name: Show Output URL
