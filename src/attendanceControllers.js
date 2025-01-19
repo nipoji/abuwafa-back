@@ -35,7 +35,7 @@ const createAttendance = async (req, res) => {
 
     if (
       !id_schedule || !tutor_name || !id_tutor || !student_name || !id_student || 
-      !time || !date || !session || !method || !subject || !id_subject || !topic || !attendance_status
+      !time || !date || !method || !subject || !id_subject
     ) {
       return res.status(400).send({
         error: true,
