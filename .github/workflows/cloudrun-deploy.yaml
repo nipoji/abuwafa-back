@@ -10,7 +10,7 @@ env:
   GAR_LOCATION: us-central1
   GAR_REPOSITORY_NAME: abuwafa-image-registry
   REGION: us-central1
-  SERVICE: abuwafa-api
+  SERVICE: abuwafa-backend
 
 jobs:
   deploy:
