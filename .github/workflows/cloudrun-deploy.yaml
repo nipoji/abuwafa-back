@@ -62,7 +62,7 @@ jobs:
           secrets: |
             DB_CA=DB_CA:latest
           ingress: "all"
-          timeout: "300s"
+          timeout: "600s"
           health_check: "/health"
 
       - name: Show Output URL
