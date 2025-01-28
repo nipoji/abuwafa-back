@@ -29,7 +29,6 @@ EXPOSE 8080
 
 # Tetapkan variabel environment
 ENV DATABASE_URL=""
-ENV DB_CA=""
 ENV KEY_JWT=""
 ENV GCS_BUCKET_NAME=""
 
