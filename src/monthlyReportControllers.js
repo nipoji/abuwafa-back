@@ -3,7 +3,7 @@ const MonthlyReport = require('./monthlyReportGet');
 const db = require('../database/db');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
-dotenv.config();
+require('dotenv').config();
 
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME;

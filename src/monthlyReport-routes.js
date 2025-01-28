@@ -6,6 +6,10 @@ const { createMonthlyReport, listMonthlyReports, updateMonthlyReport, deleteMont
   listMonthlyReportsByStudentId
  } = require("./monthlyReportControllers");
 const { verifyToken } = require('./verifyToken');
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 const router = express.Router();
 
 router.post("/monthlyreports", verifyToken, upload.single("file"), createMonthlyReport);
