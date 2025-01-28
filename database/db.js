@@ -1,14 +1,11 @@
 // db.js
 const mysql = require('mysql2/promise');
 require('dotenv').config();
-const fs = require('fs');
-
-const caPemPath = './ca.pem';
 
 const pool = mysql.createPool({
   uri: process.env.DATABASE_URL,
   ssl: {
-    ca: fs.readFileSync(caPemPath),
+    ca: Buffer.from(process.env.DB_CA, 'utf-8'),
     rejectUnauthorized: true
   },
   waitForConnections: true,

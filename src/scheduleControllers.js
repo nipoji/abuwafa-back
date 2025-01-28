@@ -36,7 +36,7 @@ const createSchedule = async (req, res) => {
       });
     }
 
-    // Find id_student based on student_name
+    // Find student_name based on id_student
     const [studentResult] = await db.execute(
       `SELECT student_name FROM students WHERE id_student = ?`,
       [id_student]
@@ -48,7 +48,7 @@ const createSchedule = async (req, res) => {
     }
     const student_name = studentResult[0].student_name;
 
-    // Find id_tutor based on tutor_name
+    // Find tutor_name based on id_tutor
     const [tutorResult] = await db.execute(
       `SELECT tutor_name FROM tutors WHERE id_tutor = ?`,
       [id_tutor]

@@ -209,6 +209,7 @@ const getAllStudentStatusStatistic = async (req, res) => {
 module.exports = {
   getStudentProfile,
   getStudentProfileById,
+  getAllStudentStatusStatistic,
   createStudentProfile,
   updateStudentProfile,
   deleteStudentProfile,

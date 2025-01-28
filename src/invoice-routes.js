@@ -4,7 +4,9 @@ const {
   createInvoice,
   listInvoices,
   updateInvoice,
-  deleteInvoice
+  deleteInvoice,
+  downloadInvoice,
+  getInvoiceById,
 } = require('./invoiceControllers');
 const { verifyToken } = require('./verifyToken');
 const multer = require("multer");
@@ -15,6 +17,8 @@ const router = express.Router();
 
 router.post('/invoice', verifyToken, upload.single('file'), createInvoice);
 router.get('/invoices', verifyToken, listInvoices);
+router.get("/invoice/download/:id_invoice", verifyToken, downloadInvoice);
+router.get("/invoice/list/:id_student", verifyToken, getInvoiceById);
 router.put('/invoice/:invoiceId', verifyToken, updateInvoice);
 router.delete('/invoice/:invoiceId', verifyToken, deleteInvoice);
 

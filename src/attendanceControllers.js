@@ -22,7 +22,9 @@ const uploadImageToGCS = async (file) => {
     stream.on("error", reject);
   });
 
-  return filePath; // Return structured file path
+  const fileUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
+
+  return fileUrl; // Return structured file path
 };
 
 const createAttendance = async (req, res) => {
@@ -46,7 +48,7 @@ const createAttendance = async (req, res) => {
     } = req.body;
 
     if (
-      !id_schedule || !tutor_name || !id_tutor || !student_name || !id_student || 
+      !id_schedule || !id_tutor || !id_student || 
       !time || !date || !session || !method || !subject || !id_subject || !topic || !attendance_status
     ) {
       return res.status(400).send({
@@ -96,12 +98,12 @@ const createAttendance = async (req, res) => {
 const generateAttendancesBySession = async (req, res) => {
   try {
     const {
-      id_attendance,
       id_schedule,
       tutor_name,
       id_tutor,
       student_name,
       id_student,
+      time,
       date,
       session,
       method,
@@ -120,19 +122,24 @@ const generateAttendancesBySession = async (req, res) => {
       });
     }
 
+    function generateRandomUUID() {
+      return Math.floor(Math.random() * 1000000000).toString();
+    }
+
     const attendances = [];
     let currentDate = new Date(date); // Start from given date
 
     for (let i = 0; i < session; i++) {
+      const randomUUID = generateRandomUUID();
       const attendance = new Attendance(
-        null, // id_attendance
+        randomUUID,
         id_schedule,
         tutor_name,
         id_tutor,
         student_name,
         id_student,
-        "", // time
-        "", // ISO Date string
+        time, // time
+        currentDate, // ISO Date string
         `${i + 1}`, // session
         method, // method (default value)
         subject, // subject (default value)
@@ -204,6 +211,39 @@ const listAttendancesByTutor = async (req, res) => {
       .send({ error: true, message: "Internal server error" });
   }
 };
+
+const listAttendancesByIdSchedule = async (req, res) => {
+  try {
+    const { id_schedule } = req.params;
+
+    if (!id_schedule) {
+      return res.status(400).send({
+        error: true,
+
+        message: "id_schedule is required",
+      });
+    }
+
+    const attendances = await Attendance.listByIdSchedule(id_schedule);
+
+    return res.send({
+      error: false,
+
+      message: "Attendances fetched successfully",
+
+      attendances,
+    });
+  } catch (error) {
+    console.error("Error listing attendances by schedule:", error.message);
+
+    return res
+
+      .status(500)
+
+      .send({ error: true, message: "Internal server error" });
+  }
+};
+
 const getAttendanceById = async (req, res) => {
   try {
     const { id_attendance } = req.params;
@@ -234,6 +274,91 @@ const getAttendanceById = async (req, res) => {
     return res
       .status(500)
       .send({ error: true, message: "Internal server error" });
+  }
+};
+
+const listDistinctStudentsAndSubjects = async (req, res) => {
+  try {
+    // Kueri untuk mendapatkan student_name dan subject secara distinct
+
+    const result = await Attendance.listDistinctStudentsAndSubjects();
+
+    if (!result || result.length === 0) {
+      return res.status(404).send({
+        error: true,
+
+        message: "No distinct students and subjects found",
+      });
+    }
+
+    return res.send({
+      error: false,
+
+      message: "Distinct students and subjects fetched successfully",
+
+      data: result, // Pastikan array dikirim tanpa modifikasi
+    });
+  } catch (error) {
+    console.error(
+      "Error fetching distinct students and subjects:",
+
+      error.message
+    );
+
+    return res
+
+      .status(500)
+
+      .send({ error: true, message: "Internal server error" });
+  }
+};
+
+const getAttendanceForCurrentMonthByIdStudent = async (req, res) => {
+  try {
+    const { id_student } = req.params;
+
+    if (!id_student) {
+      return res.status(400).send({
+        error: true,
+
+        message: "Student ID is required",
+      });
+    }
+
+    // Fetch attendance data for the current month
+
+    const attendanceData =
+      await Attendance.getAttendanceByIdStudentForCurrentMonth(id_student);
+
+    if (attendanceData.length === 0) {
+      return res.status(404).send({
+        error: false,
+
+        message: "No attendance records found for the current month",
+
+        data: [],
+      });
+    }
+
+    return res.status(200).send({
+      error: false,
+
+      message: "Attendance records fetched successfully",
+
+      data: attendanceData,
+    });
+  } catch (error) {
+    console.error(
+      "Error fetching attendance for current month:",
+
+      error.message
+    );
+
+    return res.status(500).send({
+      error: true,
+
+      message: "Internal server error",
+    });
   }
 };
 
@@ -272,6 +397,9 @@ module.exports = {
   generateAttendancesBySession,
   listAttendances,
   listAttendancesByTutor,
+  listAttendancesByIdSchedule,
+  listDistinctStudentsAndSubjects,
   getAttendanceById,
+  getAttendanceForCurrentMonthByIdStudent,
   updateAttendance,
 };

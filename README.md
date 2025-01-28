@@ -1,18 +1,12 @@
 # Dokumentasi
 **[Endpoint](https://documenter.getpostman.com/view/34827171/2sAYJ9Ae6N)**
 
-Buat .env yang berisi
 
-# JWT Secret
-KEY_JWT=
 
-# MySQL Database Configuration
-DB_HOST=
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-DB_PORT=
+# MAJOR CHANGES
 
-# CLOUD
-GOOGLE_APPLICATION_CREDENTIALS=
-GCS_BUCKET_NAME=
+- Update dan delete akan mempengaruhi file di google cloud storage juga, seperti di Attendance, Invoice, Paycheck, dan Monthly Report.
+- Penambahan fitur pada Attendance, Invoice, Monthly Report, Paycheck, dan Profile Student.
+- Fitur awal hanya create,get, update, delete.
+- Minor fix in Controllers: search by name changed to search by ID.
+- Pengubahan penggunaan CA cert.

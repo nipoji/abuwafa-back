@@ -27,9 +27,9 @@ class Attendance {
   async save() {
     const [result] = await db.execute(
       `INSERT INTO attendance 
-      ( id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
+      ( id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
       method, subject, id_subject, image, topic, result, attendance_status)
-      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         this.id_schedule, this.tutor_name, this.id_tutor, this.student_name, 
         this.id_student, this.time, this.date, this.session, this.method, this.subject, 
@@ -87,6 +87,59 @@ class Attendance {
       `UPDATE attendance SET ${setClause} WHERE id_attendance = ?`,
       values
     );
+  }
+
+  static async listByIdSchedule(id_schedule) {
+    const [rows] = await db.execute(
+      `SELECT attendance.*, schedules.tutor_name, schedules.student_name, schedules.subject, schedules.id_subject 
+       FROM attendance 
+       JOIN schedules ON attendance.id_schedule = schedules.id_schedule 
+       WHERE attendance.id_schedule = ? 
+       ORDER BY attendance.date ASC, attendance.time ASC`,
+      [id_schedule]
+    );
+    return rows;
+  }
+
+  static async listDistinctStudentsAndSubjects() {
+    const [rows] = await db.execute(
+      `SELECT DISTINCT id_schedule, student_name, subject
+      FROM attendance`
+    );
+    return rows;
+  }
+
+  static async getById(id_attendance) {
+    const [rows] = await db.execute(
+      `SELECT attendance.*, schedules.tutor_name, schedules.student_name, schedules.subject, schedules.id_subject 
+       FROM attendance 
+       JOIN schedules ON attendance.id_schedule = schedules.id_schedule 
+       WHERE attendance.id_attendance = ?`,
+      [id_attendance]
+    );
+    return rows[0];
+  }
+  
+  static async getAttendanceByIdStudentForCurrentMonth(id_student) {
+    const [rows] = await db.execute(
+      `
+        SELECT 
+        id_student,
+        student_name,
+        date, 
+        subject, 
+        tutor_name, 
+        topic, 
+        result 
+      FROM attendance 
+      WHERE id_student = ? 
+        AND MONTH(date) = MONTH(CURDATE()) 
+        AND YEAR(date) = YEAR(CURDATE())
+      ORDER BY subject ASC, date ASC
+      `,
+      [id_student]
+    );
+    return rows;
   }
 }
 

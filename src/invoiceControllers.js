@@ -25,22 +25,22 @@ const upload = multer({
 // Create invoice with PDF upload
 const createInvoice = async (req, res) => {
   try {
-    const { student_name, month, status } = req.body;
+    const { id_student, month, status } = req.body;
     const file = req.file; // The uploaded file
 
-    if (!student_name || !month || !status || !file) {
+    if (!id_student || !month || !status || !file) {
       return res.status(400).send({
         error: true,
-        message: 'Fields student_name, month, status, and file are required'
+        message: 'Fields id_student, month, status, and file are required'
       });
     }
 
-    // Find id_student based on student_name
-    const [studentResult] = await db.execute(`SELECT id_student FROM students WHERE student_name = ?`, [student_name]);
+    // Find student_name based on id_student
+    const [studentResult] = await db.execute(`SELECT student_name FROM students WHERE id_student = ?`, [id_student]);
     if (studentResult.length === 0) {
-      return res.status(404).send({ error: true, message: `Student '${student_name}' not found` });
+      return res.status(404).send({ error: true, message: `Student '${id_student}' not found` });
     }
-    const id_student = studentResult[0].id_student;
+    const student_name = studentResult[0].student_name;
 
     // Construct the file name for the PDF (use a unique name or the original file name)
     const fileName = `${Date.now()}_${file.originalname}`;
@@ -82,6 +82,81 @@ const createInvoice = async (req, res) => {
   }
 };
 
+const downloadInvoice = async (req, res) => {
+  try {
+    const { id_invoice } = req.params;
+
+    // Get invoice info from database
+    const invoice = await Invoice.get(id_invoice);
+    if (!invoice) {
+      return res.status(404).send({
+        error: true,
+        message: "Invoice not found",
+      });
+    }
+
+    // Extract the file path from the invoice's file URL
+    const filePath = invoice.file.replace(`https://storage.googleapis.com/${bucket.name}/`, '');
+    const file = bucket.file(filePath);
+
+    // Check if the file exists in the bucket
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).send({
+        error: true,
+        message: "File not found in cloud storage",
+      });
+    }
+
+    // Set headers for file download
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=${path.basename(filePath)}`);
+
+    // Create a readable stream from the cloud storage file and pipe it to the response
+    file.createReadStream()
+      .on('error', (err) => {
+        console.error("File download error:", err);
+        res.status(500).send({
+          error: true,
+          message: "Error downloading file",
+        });
+      })
+      .pipe(res);
+
+  } catch (error) {
+    console.error("Error downloading invoice:", error.message);
+    return res.status(500).send({
+      error: true,
+      message: "Internal server error",
+    });
+  }
+};
+
+const getInvoiceById = async (req, res) => {
+  try {
+    const { id_student } = req.params;
+    // Get invoice info from database
+    const invoice = await Invoice.listByStudent(id_student);
+    if (!invoice) {
+      return res.status(404).send({
+        error: true,
+        message: "Invoice not found",
+      });
+    }
+    return res.send({
+      error: false,
+      message: "Invoice fetched successfully",
+      invoice,
+    });
+  } catch (error) {
+    console.error("Error fetching invoice:", error.message);
+    return res.status(500).send({
+      error: true,
+      message: "Internal server error",
+    });
+  }
+};
+
 // List invoices
 const listInvoices = async (req, res) => {
   try {
@@ -111,7 +186,61 @@ const updateInvoice = async (req, res) => {
   try {
     const { invoiceId } = req.params;
     const updates = req.body;
+    const file = req.file; // Optional file upload
 
+    // Fetch the existing invoice to get current file URL
+    const existingInvoice = await Invoice.get(invoiceId);
+    if (!existingInvoice) {
+      return res.status(404).send({ error: true, message: 'Invoice not found' });
+    }
+
+    let fileUrl = existingInvoice.file;
+
+    if (file) {
+      // Delete the existing file from Google Cloud Storage
+      const oldFilePath = fileUrl.replace(`https://storage.googleapis.com/${bucket.name}/`, '');
+      const oldFile = bucket.file(oldFilePath);
+      try {
+        await oldFile.delete();
+        console.log('Old file deleted successfully from cloud storage');
+      } catch (err) {
+        console.error('Error deleting old file from cloud storage:', err);
+      }
+
+      // Upload the new file to Google Cloud Storage
+      const fileName = `${Date.now()}_${file.originalname}`;
+      const filePath = `invoices/${fileName}`;
+      const gcsFile = bucket.file(filePath);
+      const stream = gcsFile.createWriteStream({
+        resumable: false,
+        contentType: file.mimetype,
+      });
+
+      stream.on('error', (err) => {
+        console.error('Error uploading file to Google Cloud Storage:', err);
+        return res.status(500).send({ error: true, message: 'Error uploading file to cloud storage' });
+      });
+
+      stream.on('finish', async () => {
+        fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+        // Update the invoice in the database
+        updates.file = fileUrl;
+        await Invoice.update(invoiceId, updates);
+
+        return res.send({
+          error: false,
+          message: 'Invoice updated successfully',
+          fileUrl
+        });
+      });
+
+      // Pipe the file buffer to the cloud storage stream
+      stream.end(file.buffer);
+      return;
+    }
+
+    // If no file is uploaded, just update other fields
     await Invoice.update(invoiceId, updates);
     return res.send({ error: false, message: 'Invoice updated successfully' });
   } catch (error) {
@@ -124,6 +253,25 @@ const updateInvoice = async (req, res) => {
 const deleteInvoice = async (req, res) => {
   try {
     const { invoiceId } = req.params;
+    // Fetch the invoice details to get the file URL
+    const invoice = await Invoice.get(invoiceId);
+    if (!invoice) {
+      return res.status(404).send({ error: true, message: 'Invoice not found' });
+    }
+
+    // Extract the file path from the invoice's file URL
+    const filePath = invoice.file.replace(`https://storage.googleapis.com/${bucket.name}/`, '');
+    const file = bucket.file(filePath);
+
+    // Attempt to delete the file from Google Cloud Storage
+    try {
+      await file.delete();
+      console.log('File deleted successfully from cloud storage');
+    } catch (err) {
+      console.error('Error deleting file from cloud storage:', err);
+    }
+
+    // Delete the invoice record from the database
     await Invoice.delete(invoiceId);
     return res.send({ error: false, message: 'Invoice deleted successfully' });
   } catch (error) {
@@ -134,8 +282,10 @@ const deleteInvoice = async (req, res) => {
 
 module.exports = {
   createInvoice,
+  downloadInvoice,
+  getInvoiceById,
   listInvoices,
   updateInvoice,
   deleteInvoice,
-  upload // Export the upload middleware to be used in routes
+  upload
 };

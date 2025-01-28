@@ -24,21 +24,21 @@ const upload = multer({
 
 const createPaycheck = async (req, res) => {
   try {
-    const { tutor_name, month, status } = req.body;
+    const { id_tutor, month, status } = req.body;
 
-    if (!tutor_name || !month || !status || !req.file) {
+    if (!id_tutor || !month || !status || !req.file) {
       return res.status(400).send({
         error: true,
-        message: 'Fields tutor_name, month, status, and file are required'
+        message: 'Fields id_tutor, month, status, and file are required'
       });
     }
 
-    // Find id_tutor based on tutor_name
-    const [tutorResult] = await db.execute(`SELECT id_tutor FROM tutors WHERE tutor_name = ?`, [tutor_name]);
+    // Find tutor_name based on id_tutor
+    const [tutorResult] = await db.execute(`SELECT tutor_name FROM tutors WHERE id_tutor = ?`, [id_tutor]);
     if (tutorResult.length === 0) {
-      return res.status(404).send({ error: true, message: `Tutor '${tutor_name}' not found` });
+      return res.status(404).send({ error: true, message: `Tutor '${id_tutor}' not found` });
     }
-    const id_tutor = tutorResult[0].id_tutor;
+    const tutor_name = tutorResult[0].tutor_name;
 
     // Construct the file name for the PDF (use a unique name or the original file name)
     const fileName = `${Date.now()}_${req.file.originalname}`;
@@ -101,13 +101,94 @@ const listPaychecks = async (req, res) => {
   }
 };
 
+const downloadPaycheck = async (req, res) => {
+  try {
+    const { paycheckId } = req.params;
+    // Get paycheck info from database
+    const paycheck = await Paycheck.get(paycheckId);
+    if (!paycheck) {
+      return res.status(404).send({
+        error: true,
+        message: "Paycheck not found",
+      });
+    }
+
+    // Fetch the file from Google Cloud Storage
+    const file = bucket.file(paycheck.file);
+    const stream = file.createReadStream();
+
+    stream.on('error', (err) => {
+      console.error("Error fetching file from Google Cloud Storage:", err);
+      return res.status(500).send({
+        error: true,
+        message: "Error downloading file",
+      });
+    });
+
+    stream.on('response', (response) => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=${path.basename(paycheck.file)}`
+      );
+    });
+
+    // Pipe the file stream directly to the response
+    stream.pipe(res);
+
+  } catch (error) {
+    console.error("Error downloading paycheck:", error.message);
+    return res.status(500).send({
+      error: true,
+      message: "Internal server error",
+    });
+  }
+};
+
 const updatePaycheck = async (req, res) => {
   try {
     const { paycheckId } = req.params;
     const updates = req.body;
 
-    await Paycheck.update(paycheckId, updates);
-    return res.send({ error: false, message: 'Paycheck updated successfully' });
+    // Fetch existing paycheck data
+    const paycheck = await Paycheck.get(paycheckId);
+    if (!paycheck) {
+      return res.status(404).send({ error: true, message: 'Paycheck not found' });
+    }
+
+    if (req.file) {
+      // Delete the old file from Google Cloud Storage
+      const oldFile = bucket.file(paycheck.file);
+      await oldFile.delete().catch(err => {
+        console.error("Error deleting old file:", err.message);
+      });
+
+      // Upload the new file
+      const fileName = `${Date.now()}_${req.file.originalname}`;
+      const filePath = `paychecks/${fileName}`;
+      const file = bucket.file(filePath);
+      const stream = file.createWriteStream({
+        resumable: false,
+        contentType: req.file.mimetype,
+      });
+
+      stream.on('error', (err) => {
+        console.error('Error uploading file to Google Cloud Storage:', err);
+        return res.status(500).send({ error: true, message: 'Error uploading file to cloud storage' });
+      });
+
+      stream.on('finish', async () => {
+        updates.file = filePath;
+        await Paycheck.update(paycheckId, updates);
+        return res.send({ error: false, message: 'Paycheck updated successfully', fileUrl: `https://storage.googleapis.com/${bucket.name}/${filePath}` });
+      });
+
+      stream.end(req.file.buffer);
+    } else {
+      // Update other fields if no file is provided
+      await Paycheck.update(paycheckId, updates);
+      return res.send({ error: false, message: 'Paycheck updated successfully' });
+    }
   } catch (error) {
     console.error("Error updating paycheck:", error.message);
     return res.status(500).send({ error: true, message: 'Internal server error' });
@@ -117,6 +198,19 @@ const updatePaycheck = async (req, res) => {
 const deletePaycheck = async (req, res) => {
   try {
     const { paycheckId } = req.params;
+    // Fetch paycheck info from database
+    const paycheck = await Paycheck.get(paycheckId);
+    if (!paycheck) {
+      return res.status(404).send({ error: true, message: 'Paycheck not found' });
+    }
+
+    // Delete the file from Google Cloud Storage
+    const file = bucket.file(paycheck.file);
+    await file.delete().catch(err => {
+      console.error("Error deleting file from cloud storage:", err.message);
+    });
+
+    // Delete the paycheck record from the database
     await Paycheck.delete(paycheckId);
     return res.send({ error: false, message: 'Paycheck deleted successfully' });
   } catch (error) {
@@ -128,7 +222,8 @@ const deletePaycheck = async (req, res) => {
 module.exports = {
   createPaycheck,
   listPaychecks,
+  downloadPaycheck,
   updatePaycheck,
   deletePaycheck,
-  upload // Export the upload middleware for use in routes
+  upload
 };
