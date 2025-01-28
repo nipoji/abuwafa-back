@@ -27,10 +27,5 @@ COPY . .
 # Tentukan port yang akan diekspos
 EXPOSE 8080
 
-# Tetapkan variabel environment
-ENV DATABASE_URL=""
-ENV KEY_JWT=""
-ENV GCS_BUCKET_NAME=""
-
 # Perintah untuk menjalankan aplikasi
 CMD ["npm", "run", "start"]
