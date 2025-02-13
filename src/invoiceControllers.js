@@ -42,11 +42,11 @@ const createInvoice = async (req, res) => {
     }
     const student_name = studentResult[0].student_name;
 
-    // Construct the file name for the PDF (use a unique name or the original file name)
+    // Buat nama file unik
     const fileName = `${Date.now()}_${file.originalname}`;
-    const filePath = `invoices/${fileName}`; // Store the file in a folder called 'invoices'
+    const filePath = `invoices/${fileName}`;
 
-    // Upload the file to Google Cloud Storage
+    // Upload ke Google Cloud Storage
     const gcsFile = bucket.file(filePath);
     const stream = gcsFile.createWriteStream({
       resumable: false,
@@ -59,23 +59,19 @@ const createInvoice = async (req, res) => {
     });
 
     stream.on('finish', async () => {
-      // Once the file upload is finished, save the file path (URL) to the database
-      const fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-
-      const invoice = new Invoice(null, id_student, student_name, month, fileUrl, status);
+      // Simpan hanya fileName ke database, bukan URL lengkapnya
+      const invoice = new Invoice(null, id_student, student_name, month, fileName, status);
       await invoice.save();
 
       return res.status(201).send({
         error: false,
         message: 'Invoice created successfully',
         id: invoice.id,
-        fileUrl // Return the URL of the uploaded file
+        fileName // Kembalikan nama file, bukan URL
       });
     });
 
-    // Pipe the file buffer to the cloud storage stream
     stream.end(file.buffer);
-
   } catch (error) {
     console.error("Error creating invoice:", error.message);
     return res.status(500).send({ error: true, message: 'Internal server error' });
@@ -86,7 +82,7 @@ const downloadInvoice = async (req, res) => {
   try {
     const { id_invoice } = req.params;
 
-    // Get invoice info from database
+    // Ambil invoice dari database
     const invoice = await Invoice.get(id_invoice);
     if (!invoice) {
       return res.status(404).send({
@@ -95,11 +91,12 @@ const downloadInvoice = async (req, res) => {
       });
     }
 
-    // Extract the file path from the invoice's file URL
-    const filePath = invoice.file.replace(`https://storage.googleapis.com/${bucket.name}/`, '');
+    // Bangun kembali URL berdasarkan nama file yang disimpan di database
+    const fileName = invoice.file; // Sekarang hanya menyimpan nama file
+    const filePath = `invoices/${fileName}`;
     const file = bucket.file(filePath);
 
-    // Check if the file exists in the bucket
+    // Periksa apakah file ada di Cloud Storage
     const [exists] = await file.exists();
     if (!exists) {
       return res.status(404).send({
@@ -108,21 +105,15 @@ const downloadInvoice = async (req, res) => {
       });
     }
 
-    // Set headers for file download
+    // Download file ke buffer
+    const [fileBuffer] = await file.download();
+
+    // Set headers untuk download
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${path.basename(filePath)}`);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Length", fileBuffer.length);
 
-    // Create a readable stream from the cloud storage file and pipe it to the response
-    file.createReadStream()
-      .on('error', (err) => {
-        console.error("File download error:", err);
-        res.status(500).send({
-          error: true,
-          message: "Error downloading file",
-        });
-      })
-      .pipe(res);
-
+    return res.send(fileBuffer);
   } catch (error) {
     console.error("Error downloading invoice:", error.message);
     return res.status(500).send({

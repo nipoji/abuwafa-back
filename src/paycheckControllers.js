@@ -58,7 +58,7 @@ const createPaycheck = async (req, res) => {
 
     stream.on('finish', async () => {
       // Once the file upload is finished, save the file path to the database
-      const paycheck = new Paycheck(null, id_tutor, tutor_name, month, status, filePath);
+      const paycheck = new Paycheck(null, id_tutor, tutor_name, month, status, fileName);
       await paycheck.save();
 
       return res.status(201).send({

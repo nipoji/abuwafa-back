@@ -79,7 +79,7 @@ async function generateMonthlyReport(id_student) {
 
     // Fetch attendance data
     const [attendanceData] = await db.query(
-      "SELECT date, subject, tutor_name, topic, result FROM attendance WHERE id_student = ?",
+      "SELECT DATE_FORMAT(date, '%a %b %d %Y') AS date, subject, tutor_name, topic, result FROM attendance WHERE id_student = ?",
       [id_student]
     );
 
@@ -119,11 +119,11 @@ async function generateMonthlyReport(id_student) {
     // Save the relative file path in the database
     await db.query(
       "INSERT INTO monthly_reports (id_student, student_name, month, year, file_path) VALUES (?, ?, ?, ?, ?)",
-      [id_student, student_name, month, year, filePath]
+      [id_student, student_name, month, year, fileName]
     );
 
-    console.log(`Report generated and uploaded to: ${filePath}`);
-    return filePath;
+    console.log(`Report generated and uploaded to: ${fileName}`);
+    return fileName;
   } catch (err) {
     console.error("Error generating report:", err);
     throw err;

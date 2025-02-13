@@ -1,4 +1,5 @@
 // profileStudentControllers.js
+const bcrypt = require("bcrypt");
 const pool = require("../database/db");
 
 const getStudentProfile = async (req, res) => {
@@ -117,6 +118,11 @@ const updateStudentProfile = async (req, res) => {
       return res
         .status(400)
         .send({ error: true, message: "Student ID is required" });
+    }
+
+    if (updates.password) {
+      const saltRounds = 10;
+      updates.password = await bcrypt.hash(updates.password, saltRounds);
     }
 
     const fields = Object.keys(updates)
