@@ -13,7 +13,7 @@ const { verifyToken } = require("./verifyToken");
 const router = express.Router();
 
 router.get("/profiles", verifyToken, getStudentProfile);
-router.get("/profile", verifyToken, getStudentProfileById);
+router.get("/profile/:id", verifyToken, getStudentProfileById);
 router.get("/profile/status", verifyToken, getAllStudentStatusStatistic);
 router.post("/profile", verifyToken, createStudentProfile);
 router.patch("/profile/:id", verifyToken, updateStudentProfile);

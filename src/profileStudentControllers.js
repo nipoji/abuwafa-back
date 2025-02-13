@@ -29,9 +29,9 @@ const getStudentProfile = async (req, res) => {
 
 const getStudentProfileById = async (req, res) => {
   try {
-    const { id_student } = req.query; // Get the student ID from query parameter
+    const { id } = req.params; // Get the student ID from query parameter
 
-    if (!id_student) {
+    if (!id) {
       return res
         .status(400)
         .send({ error: true, message: "Student ID is required" });
@@ -39,7 +39,7 @@ const getStudentProfileById = async (req, res) => {
 
     const [rows] = await pool.query(
       "SELECT * FROM students WHERE id_student = ?",
-      [id_student]
+      [id]
     );
 
     if (rows.length === 0) {

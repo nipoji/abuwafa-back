@@ -26,16 +26,16 @@ const getTutorProfile = async (req, res) => {
 
 const getTutorProfileById = async (req, res) => {
   try {
-    const { id_tutor } = req.query; //
+    const { id } = req.params; //
 
-    if (!id_tutor) {
+    if (!id) {
       return res
         .status(400)
         .send({ error: true, message: "Tutor ID is required" });
     }
 
     const [rows] = await pool.query("SELECT * FROM tutors WHERE id_tutor = ?", [
-      id_tutor,
+      id,
     ]);
 
     if (rows.length === 0) {
