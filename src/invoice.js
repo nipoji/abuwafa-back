@@ -13,9 +13,9 @@ class Invoice {
 
   async save() {
     const [result] = await db.execute(
-      `INSERT INTO invoices (id_invoice, id_student, student_name, month, file, status)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [this.id, this.id_student, this.student_name, this.month, this.file, this.status]
+      `INSERT INTO invoices ( id_student, student_name, month, file, status)
+       VALUES ( ?, ?, ?, ?, ?)`,
+      [ this.id_student, this.student_name, this.month, this.file, this.status]
     );
     if (!this.id) {
       this.id = result.insertId; // Use auto-generated ID if not provided

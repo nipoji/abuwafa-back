@@ -1,0 +1,60 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: abuwafa-learning
+  GAR_LOCATION: us-central1
+  GAR_REPOSITORY_NAME: abuwafa-image-registry
+  REGION: us-central1
+  SERVICE: abuwafa-backend
+
+jobs:
+  deploy:
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCLOUD_CREDENTIALS }}"
+
+      - name: Configure Docker to use Google Cloud
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image and Push to Artifact Registry
+        run: |
+          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}" .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY_NAME }}/${{ env.SERVICE }}:${{ github.sha }}"
+          env_vars: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }},
+            KEY_JWT=${{ secrets.KEY_JWT }},
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+          secrets: |
+            DB_CA=DB_CA:latest
+          ingress: "all"
+          timeout: "600s"
+          health_check: "/health"
+
+      - name: Show Output URL
+        run: echo ${{ steps.deploy.outputs.url }}

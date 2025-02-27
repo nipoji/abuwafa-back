@@ -6,8 +6,8 @@ const createSchedule = async (req, res) => {
   try {
     const {
       id_schedule,
-      student_name,
-      tutor_name,
+      id_student,
+      id_tutor,
       day,
       date,
       id_subject,
@@ -20,8 +20,8 @@ const createSchedule = async (req, res) => {
     } = req.body;
 
     if (
-      !student_name ||
-      !tutor_name ||
+      !id_student ||
+      !id_tutor ||
       !day ||
       !date ||
       !id_subject ||
@@ -36,29 +36,29 @@ const createSchedule = async (req, res) => {
       });
     }
 
-    // Find id_student based on student_name
+    // Find student_name based on id_student
     const [studentResult] = await db.execute(
-      `SELECT id_student FROM students WHERE student_name = ?`,
-      [student_name]
+      `SELECT student_name FROM students WHERE id_student = ?`,
+      [id_student]
     );
     if (studentResult.length === 0) {
       return res
         .status(404)
-        .send({ error: true, message: `Student '${student_name}' not found` });
+        .send({ error: true, message: `Student '${id_student}' not found` });
     }
-    const id_student = studentResult[0].id_student;
+    const student_name = studentResult[0].student_name;
 
-    // Find id_tutor based on tutor_name
+    // Find tutor_name based on id_tutor
     const [tutorResult] = await db.execute(
-      `SELECT id_tutor FROM tutors WHERE tutor_name = ?`,
-      [tutor_name]
+      `SELECT tutor_name FROM tutors WHERE id_tutor = ?`,
+      [id_tutor]
     );
     if (tutorResult.length === 0) {
       return res
         .status(404)
-        .send({ error: true, message: `Tutor '${tutor_name}' not found` });
+        .send({ error: true, message: `Tutor '${id_tutor}' not found` });
     }
-    const id_tutor = tutorResult[0].id_tutor;
+    const tutor_name = tutorResult[0].tutor_name;
 
     // Mengambil subject berdasarkan id_subject
     const [subjectResult] = await db.execute(

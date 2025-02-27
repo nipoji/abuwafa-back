@@ -20,9 +20,10 @@ class MonthlyReport {
   async save() {
     try {
       const [result] = await db.execute(
-        `INSERT INTO monthly_reports (id_student, student_name, month, year, file_path)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO monthly_reports (id_monthlyReport, id_student, student_name, month, year, file_path)
+       VALUES (?, ?, ?, ?, ?, ?)`,
         [
+          this.id,
           this.id_student,
           this.student_name,
           this.month,
@@ -30,8 +31,9 @@ class MonthlyReport {
           this.file_path,
         ]
       );
-
-      this.id = result.insertId;
+      if (!this.id) {
+        this.id = result.insertId; // Use auto-generated ID if not provided
+      }
       return this;
     } catch (error) {
       console.error("Error saving monthly report:", error);
@@ -63,7 +65,6 @@ class MonthlyReport {
       "December",
     ];
     const monthName = isNaN(month) ? month : monthNames[parseInt(month) - 1];
-
     console.log("Check parameters: ", { userId, month, monthName, year });
     const [results] = await db.execute(
       `SELECT COUNT(*) as count 
@@ -71,7 +72,6 @@ class MonthlyReport {
        WHERE id_student = ? AND month = ? AND year = ?`,
       [userId, month, year]
     );
-
     return results[0].count > 0;
   }
 

@@ -1,4 +1,5 @@
 // profileStudentControllers.js
+const bcrypt = require("bcrypt");
 const pool = require("../database/db");
 
 const getStudentProfile = async (req, res) => {
@@ -28,9 +29,9 @@ const getStudentProfile = async (req, res) => {
 
 const getStudentProfileById = async (req, res) => {
   try {
-    const { id_student } = req.query; // Get the student ID from query parameter
+    const { id } = req.params; // Get the student ID from query parameter
 
-    if (!id_student) {
+    if (!id) {
       return res
         .status(400)
         .send({ error: true, message: "Student ID is required" });
@@ -38,7 +39,7 @@ const getStudentProfileById = async (req, res) => {
 
     const [rows] = await pool.query(
       "SELECT * FROM students WHERE id_student = ?",
-      [id_student]
+      [id]
     );
 
     if (rows.length === 0) {
@@ -66,7 +67,6 @@ const createStudentProfile = async (req, res) => {
       student_name,
       phone_student,
       parent_name,
-      city,
       address,
       status,
       package,
@@ -79,14 +79,13 @@ const createStudentProfile = async (req, res) => {
     } = req.body;
     const userId = req.user.id;
     await pool.query(
-      `INSERT INTO students (id_student, student_name, phone_student, parent_name, city, address, status, package, school, grade, curriculum, username, password, role)
+      `INSERT INTO students (id_student, student_name, phone_student, parent_name, address, status, package, school, grade, curriculum, username, password, role)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         student_name,
         phone_student,
         parent_name,
-        city,
         address,
         status,
         package,
@@ -119,6 +118,11 @@ const updateStudentProfile = async (req, res) => {
       return res
         .status(400)
         .send({ error: true, message: "Student ID is required" });
+    }
+
+    if (updates.password) {
+      const saltRounds = 10;
+      updates.password = await bcrypt.hash(updates.password, saltRounds);
     }
 
     const fields = Object.keys(updates)
@@ -211,6 +215,7 @@ const getAllStudentStatusStatistic = async (req, res) => {
 module.exports = {
   getStudentProfile,
   getStudentProfileById,
+  getAllStudentStatusStatistic,
   createStudentProfile,
   updateStudentProfile,
   deleteStudentProfile,

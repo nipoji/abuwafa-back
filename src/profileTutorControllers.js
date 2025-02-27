@@ -1,4 +1,5 @@
 // profileTutorControllers.js
+const bcrypt = require("bcrypt");
 const pool = require("../database/db");
 
 const getTutorProfile = async (req, res) => {
@@ -25,16 +26,16 @@ const getTutorProfile = async (req, res) => {
 
 const getTutorProfileById = async (req, res) => {
   try {
-    const { id_tutor } = req.query; //
+    const { id } = req.params; //
 
-    if (!id_tutor) {
+    if (!id) {
       return res
         .status(400)
         .send({ error: true, message: "Tutor ID is required" });
     }
 
     const [rows] = await pool.query("SELECT * FROM tutors WHERE id_tutor = ?", [
-      id_tutor,
+      id,
     ]);
 
     if (rows.length === 0) {
@@ -63,7 +64,6 @@ const createTutorProfile = async (req, res) => {
       phone_tutor,
       email,
       address,
-      city,
       status,
       courses_type,
       bank,
@@ -74,7 +74,7 @@ const createTutorProfile = async (req, res) => {
     } = req.body;
     const userId = req.user.id;
     await pool.query(
-      `INSERT INTO tutors (id_tutor, tutor_name, phone_tutor, email, address, city, status, courses_type, bank, no_rek, username, password, role)
+      `INSERT INTO tutors (id_tutor, tutor_name, phone_tutor, email, address, status, courses_type, bank, no_rek, username, password, role)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
@@ -82,7 +82,6 @@ const createTutorProfile = async (req, res) => {
         phone_tutor,
         email,
         address,
-        city,
         status,
         courses_type,
         bank,
@@ -106,19 +105,29 @@ const createTutorProfile = async (req, res) => {
 
 const updateTutorProfile = async (req, res) => {
   try {
-    const { id } = req.params; // Get the tutor ID from the route parameter
-    const updates = req.body;
+    const { id } = req.params; // Get tutor ID from route parameter
+    let updates = req.body;
 
     if (!id) {
-      return res
-        .status(400)
-        .send({ error: true, message: "Tutor ID is required" });
+      return res.status(400).send({ error: true, message: "Tutor ID is required" });
     }
 
+    // Jika tutor mengupdate password, hash terlebih dahulu
+    if (updates.password) {
+      const saltRounds = 10;
+      updates.password = await bcrypt.hash(updates.password, saltRounds);
+    }
+
+    // Update hanya field yang diberikan
     const fields = Object.keys(updates)
-      .map((field) => `${field} = ?`)
+      .filter((key) => updates[key] !== undefined)
+      .map((key) => `${key} = ?`)
       .join(", ");
-    const values = Object.values(updates);
+    const values = Object.values(updates).filter((value) => value !== undefined);
+
+    if (fields.length === 0) {
+      return res.status(400).send({ error: true, message: "No valid fields to update" });
+    }
 
     const [result] = await pool.query(
       `UPDATE tutors SET ${fields} WHERE id_tutor = ?`,
@@ -126,20 +135,13 @@ const updateTutorProfile = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .send({ error: true, message: "Tutor profile not found" });
+      return res.status(404).send({ error: true, message: "Tutor profile not found" });
     }
 
-    return res.send({
-      error: false,
-      message: "Tutor profile updated successfully",
-    });
+    return res.send({ error: false, message: "Tutor profile updated successfully" });
   } catch (error) {
     console.error("Error updating tutor profile:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: "Internal server error" });
   }
 };
 

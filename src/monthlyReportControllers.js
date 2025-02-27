@@ -1,26 +1,24 @@
 // monthlyReportControllers.js
 const MonthlyReport = require("./monthlyReportGet");
 const db = require("../database/db");
-const multer = require("multer");
+const { Storage } = require("@google-cloud/storage");
 const path = require("path");
+require("dotenv").config();
 
-// Define the storage configuration for multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Directory where images will be stored
-    cb(null, "uploads/monthly-report/");
-  },
-  filename: (req, file, cb) => {
-    // Use original filename with a timestamp to avoid naming collisions
-    cb(null, file.originalname);
-  },
-});
-
-const upload = multer({ storage });
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME;
 
 const createMonthlyReport = async (req, res) => {
   try {
-    const { student_name, month, year } = req.body;
+    const { id_student, month, year } = req.body;
+
+    // Check if file was uploaded - correct way to check
+    if (!req.file) {
+      return res.status(400).send({
+        error: true,
+        message: "PDF file is required",
+      });
+    }
 
     // Check if file was uploaded - correct way to check
     if (!req.file) {
@@ -34,34 +32,47 @@ const createMonthlyReport = async (req, res) => {
     if (!student_name || !month || !year) {
       return res.status(400).send({
         error: true,
-        message: "Fields student_name, month, and year are required",
+        message: "Fields id_student, month, and year are required",
       });
     }
 
-    // Find id_student based on student_name
+    // Find student_name based on id_student
     const [studentResult] = await db.execute(
-      `SELECT id_student FROM students WHERE student_name = ?`,
-      [student_name]
+      `SELECT student_name FROM students WHERE id_student = ?`,
+      [id_student]
     );
-
     if (studentResult.length === 0) {
       return res
         .status(404)
-        .send({ error: true, message: `Student '${student_name}' not found` });
+        .send({ error: true, message: `Student '${id_student}' not found` });
+    }
+    const student_name = studentResult[0].student_name;
+
+    let file_path = null;
+    if (req.file) {
+      const { originalname, buffer } = req.file;
+      const filePath = `monthly_reports/${Date.now()}-${originalname}`;
+      const blob = storage.bucket(bucketName).file(filePath);
+      const stream = blob.createWriteStream({ resumable: false });
+
+      stream.end(buffer);
+
+      await new Promise((resolve, reject) => {
+        stream.on("finish", resolve);
+        stream.on("error", reject);
+      });
+
+      file_path = filePath;
     }
 
-    const id_student = studentResult[0].id_student;
-
-    // Create a new monthly report with the uploaded file path
     const monthlyReport = new MonthlyReport(
       null,
       id_student,
       student_name,
       month,
       year,
-      req.file.filename // Use the uploaded file's filename
+      file_path
     );
-
     await monthlyReport.save();
 
     return res.status(201).send({
@@ -82,9 +93,7 @@ const downloadMonthlyReport = async (req, res) => {
   try {
     const { id_monthlyReport } = req.params;
 
-    // Get paycheck info from database
     const montrep = await MonthlyReport.get(id_monthlyReport);
-
     if (!montrep) {
       return res.status(404).send({
         error: true,
@@ -92,26 +101,39 @@ const downloadMonthlyReport = async (req, res) => {
       });
     }
 
-    // Construct file path
-    const filePath = `uploads/monthly-report/${montrep.file_path}`;
+    const filePath = montrep.file_path;
+    if (!filePath) {
+      return res.status(400).send({
+        error: true,
+        message: "File path not found for the monthly report",
+      });
+    }
 
-    // Set headers for file download
-    res.setHeader("Content-Type", "application/pdf");
+    const file = storage.bucket(bucketName).file(filePath);
+    const fileExists = await file.exists();
+
+    if (!fileExists[0]) {
+      return res.status(404).send({
+        error: true,
+        message: "File not found in storage",
+      });
+    }
+
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=${montrep.file_path}`
+      `attachment; filename=${path.basename(filePath)}`
     );
 
-    // Send the file
-    res.download(filePath, montrep.file_path, (err) => {
-      if (err) {
+    file
+      .createReadStream()
+      .on("error", (err) => {
         console.error("File download error:", err);
         res.status(500).send({
           error: true,
           message: "Error downloading file",
         });
-      }
-    });
+      })
+      .pipe(res);
   } catch (error) {
     console.error("Error downloading monthly report:", error.message);
     return res.status(500).send({
@@ -150,7 +172,6 @@ const checkReportExistence = async (req, res) => {
   try {
     const { userId, month, year } = req.params;
 
-    // Validate the input
     if (!userId || !month || !year) {
       return res.status(400).send({
         error: true,
@@ -158,9 +179,7 @@ const checkReportExistence = async (req, res) => {
       });
     }
 
-    // Check if the report exists
     const exists = await MonthlyReport.checkIfReportExists(userId, month, year);
-
     return res.send({
       error: false,
       exists,
@@ -179,18 +198,15 @@ const checkReportExistence = async (req, res) => {
 
 const listMonthlyReportsByStudentId = async (req, res) => {
   try {
-    const { id_student } = req.params; // Get studentId from request parameters
+    const { id_student } = req.params;
 
-    // Fetch reports from the database for the given studentId
     const reports = await MonthlyReport.listByStudent(id_student);
-
     if (reports.length === 0) {
       return res.status(404).send({
         error: true,
         message: `No reports found for student ID '${id_student}'`,
       });
     }
-
     return res.send({
       error: false,
       message: "Monthly reports fetched successfully",
@@ -208,6 +224,22 @@ const updateMonthlyReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const updates = req.body;
+
+    if (req.file) {
+      const { originalname, buffer } = req.file;
+      const filePath = `monthly_reports/${Date.now()}-${originalname}`;
+      const blob = storage.bucket(bucketName).file(filePath);
+      const stream = blob.createWriteStream({ resumable: false });
+
+      stream.end(buffer);
+
+      await new Promise((resolve, reject) => {
+        stream.on("finish", resolve);
+        stream.on("error", reject);
+      });
+
+      updates.file_path = filePath;
+    }
 
     await MonthlyReport.update(reportId, updates);
     return res.send({
@@ -246,5 +278,7 @@ module.exports = {
   listMonthlyReportsByStudentId,
   updateMonthlyReport,
   deleteMonthlyReport,
-  upload,
+  downloadMonthlyReport,
+  checkReportExistence,
+  listMonthlyReportsByStudentId,
 };

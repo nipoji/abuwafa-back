@@ -13,9 +13,9 @@ class Paycheck {
 
   async save() {
     const [result] = await db.execute(
-      `INSERT INTO paychecks (id_paycheck, id_tutor, tutor_name, month, status, file)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [this.id, this.id_tutor, this.tutor_name, this.month, this.status, this.file]
+      `INSERT INTO paychecks ( id_tutor, tutor_name, month, status, file)
+       VALUES ( ?, ?, ?, ?, ?)`,
+      [ this.id_tutor, this.tutor_name, this.month, this.status, this.file]
     );
     if (!this.id) {
       this.id = result.insertId; // Use auto-generated ID if not provided

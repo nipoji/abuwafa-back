@@ -5,11 +5,13 @@ const {
   listInvoices,
   updateInvoice,
   deleteInvoice,
-  upload,
   downloadInvoice,
   getInvoiceById,
 } = require("./invoiceControllers");
 const { verifyToken } = require("./verifyToken");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const router = express.Router();
 

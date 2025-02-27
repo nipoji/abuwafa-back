@@ -5,12 +5,15 @@ const {
   listMonthlyReports,
   updateMonthlyReport,
   deleteMonthlyReport,
-  upload,
-  listMonthlyReportsByStudentId,
   downloadMonthlyReport,
   checkReportExistence,
+  listMonthlyReportsByStudentId,
 } = require("./monthlyReportControllers");
 const { verifyToken } = require("./verifyToken");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 const router = express.Router();
 
 router.post(
@@ -37,6 +40,21 @@ router.get(
 );
 router.put("/monthlyreports/:reportId", verifyToken, updateMonthlyReport);
 router.delete("/monthlyreports/:reportId", verifyToken, deleteMonthlyReport);
+router.get(
+  "/monthlyreport/check/:userId/:month/:year",
+  verifyToken,
+  checkReportExistence
+);
+router.get(
+  "/monthlyreports/download/:id_monthlyReport",
+  verifyToken,
+  downloadMonthlyReport
+);
+router.get(
+  "/monthlyreport/detail/:id_student",
+  verifyToken,
+  listMonthlyReportsByStudentId
+);
 
 module.exports = {
   routes: router,

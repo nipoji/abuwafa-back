@@ -3,7 +3,7 @@ const { generateMonthlyReportsForAllStudents } = require("./monthlyReport"); // 
 
 // Jadwal cron job untuk menjalankan setiap awal bulan
 // Jika ingin test, ganti menjadi */1 * * * * maka tergenerate otomatis dalam satu menit
-schedule.scheduleJob("0 0 1 * *", async () => {
+schedule.scheduleJob("0 7 */2 * *", async () => {
   console.log("Starting monthly report generation...");
   try {
     await generateMonthlyReportsForAllStudents();

@@ -8,7 +8,6 @@ const {
   generateAttendancesBySession,
   listAttendancesByIdSchedule,
   getAttendanceById,
-  upload,
   listDistinctStudentsAndSubjects,
   getAttendanceForCurrentMonthByIdStudent,
 } = require("./attendanceControllers");
