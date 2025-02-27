@@ -412,5 +412,6 @@ module.exports = {
   getAttendanceById,
   getAttendanceForCurrentMonthByIdStudent,
   updateAttendance,
-  upload,
+  uploadImageToGCS,
+  // upload,
 };
