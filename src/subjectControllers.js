@@ -46,6 +46,23 @@ const listSubjects = async (req, res) => {
   }
 };
 
+const getSubjectbyId = async (req, res) => {
+  try {
+    const { subjectId } = req.params;
+    const subject = await Subject.get(subjectId);
+    return res.send({
+      error: false,
+      message: "Subject get successfully",
+      data: subject,
+    });
+  } catch (error) {
+    console.error("Error getting subject:", error.message);
+    return res
+      .status(500)
+      .send({ error: true, message: "Internal server error" });
+  }
+};
+
 const updateSubject = async (req, res) => {
   try {
     const { subjectId } = req.params;
@@ -77,6 +94,7 @@ const deleteSubject = async (req, res) => {
 module.exports = {
   createSubject,
   listSubjects,
+  getSubjectbyId,
   updateSubject,
   deleteSubject,
 };

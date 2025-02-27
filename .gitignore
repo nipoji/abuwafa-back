@@ -1,5 +1,6 @@
 .env
 node_modules/
+uploads/invoices
 uploads/attendances
 uploads/monthly-report
 uploads/paychecks

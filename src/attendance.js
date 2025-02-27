@@ -155,6 +155,7 @@ class Attendance {
         student_name,
         date, 
         subject, 
+        session,
         tutor_name, 
         topic, 
         result 
