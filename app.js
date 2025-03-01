@@ -14,7 +14,6 @@ const monthlyReportRoutes = require("./src/monthlyReport-routes");
 const subjectRoutes = require("./src/subject-routes");
 const cors = require("cors"); // CORS middleware for cross-origin requests
 const morgan = require("morgan"); // Logging middleware
-const path = require("path");
 require("dotenv").config();
 require("./src/cronjob");
 
@@ -59,16 +58,6 @@ app.use((err, req, res, next) => {
     message: err.message || "Internal Server Error",
   });
 });
-
-// Serve static files from the frontend project (adjust the path accordingly)
-app.use(
-  "/uploads",
-  express.static(
-    path.join(
-      "D:/Programming/React/Project/abuwafa-private-learning/uploads/attendances"
-    )
-  )
-);
 
 // Handle unmatched routes
 app.use((req, res) => {

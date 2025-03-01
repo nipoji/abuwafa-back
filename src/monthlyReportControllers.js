@@ -1,9 +1,9 @@
 // monthlyReportControllers.js
-const MonthlyReport = require("./monthlyReportGet");
-const db = require("../database/db");
-const { Storage } = require("@google-cloud/storage");
-const path = require("path");
-require("dotenv").config();
+const MonthlyReport = require('./monthlyReportGet');
+const db = require('../database/db');
+const { Storage } = require('@google-cloud/storage');
+const path = require('path');
+require('dotenv').config();
 
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME;
@@ -20,31 +20,17 @@ const createMonthlyReport = async (req, res) => {
       });
     }
 
-    // Check if file was uploaded - correct way to check
-    if (!req.file) {
-      return res.status(400).send({
-        error: true,
-        message: "PDF file is required",
-      });
-    }
-
-    // Validate other required fields
     if (!student_name || !month || !year) {
       return res.status(400).send({
         error: true,
-        message: "Fields id_student, month, and year are required",
+        message: 'Fields id_student, month, and year are required'
       });
     }
 
     // Find student_name based on id_student
-    const [studentResult] = await db.execute(
-      `SELECT student_name FROM students WHERE id_student = ?`,
-      [id_student]
-    );
+    const [studentResult] = await db.execute(`SELECT student_name FROM students WHERE id_student = ?`, [id_student]);
     if (studentResult.length === 0) {
-      return res
-        .status(404)
-        .send({ error: true, message: `Student '${id_student}' not found` });
+      return res.status(404).send({ error: true, message: `Student '${id_student}' not found` });
     }
     const student_name = studentResult[0].student_name;
 
@@ -58,34 +44,24 @@ const createMonthlyReport = async (req, res) => {
       stream.end(buffer);
 
       await new Promise((resolve, reject) => {
-        stream.on("finish", resolve);
-        stream.on("error", reject);
+        stream.on('finish', resolve);
+        stream.on('error', reject);
       });
 
       file_path = filePath;
     }
 
-    const monthlyReport = new MonthlyReport(
-      null,
-      id_student,
-      student_name,
-      month,
-      year,
-      file_path
-    );
+    const monthlyReport = new MonthlyReport(null, id_student, student_name, month, year, file_path);
     await monthlyReport.save();
 
     return res.status(201).send({
       error: false,
-      message: "Monthly report created successfully",
-      id: monthlyReport.id,
-      file_path: req.file.filename,
+      message: 'Monthly report created successfully',
+      id: monthlyReport.id
     });
   } catch (error) {
     console.error("Error creating monthly report:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -119,14 +95,10 @@ const downloadMonthlyReport = async (req, res) => {
       });
     }
 
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=${path.basename(filePath)}`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename=${path.basename(filePath)}`);
 
-    file
-      .createReadStream()
-      .on("error", (err) => {
+    file.createReadStream()
+      .on('error', (err) => {
         console.error("File download error:", err);
         res.status(500).send({
           error: true,
@@ -157,14 +129,12 @@ const listMonthlyReports = async (req, res) => {
 
     return res.send({
       error: false,
-      message: "Monthly reports fetched successfully",
-      reports,
+      message: 'Monthly reports fetched successfully',
+      reports
     });
   } catch (error) {
     console.error("Error listing monthly reports:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -234,23 +204,18 @@ const updateMonthlyReport = async (req, res) => {
       stream.end(buffer);
 
       await new Promise((resolve, reject) => {
-        stream.on("finish", resolve);
-        stream.on("error", reject);
+        stream.on('finish', resolve);
+        stream.on('error', reject);
       });
 
       updates.file_path = filePath;
     }
 
     await MonthlyReport.update(reportId, updates);
-    return res.send({
-      error: false,
-      message: "Monthly report updated successfully",
-    });
+    return res.send({ error: false, message: 'Monthly report updated successfully' });
   } catch (error) {
     console.error("Error updating monthly report:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -258,27 +223,19 @@ const deleteMonthlyReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     await MonthlyReport.delete(reportId);
-    return res.send({
-      error: false,
-      message: "Monthly report deleted successfully",
-    });
+    return res.send({ error: false, message: 'Monthly report deleted successfully' });
   } catch (error) {
     console.error("Error deleting monthly report:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
 module.exports = {
   createMonthlyReport,
-  downloadMonthlyReport,
-  checkReportExistence,
   listMonthlyReports,
-  listMonthlyReportsByStudentId,
   updateMonthlyReport,
   deleteMonthlyReport,
   downloadMonthlyReport,
   checkReportExistence,
-  listMonthlyReportsByStudentId,
+  listMonthlyReportsByStudentId
 };

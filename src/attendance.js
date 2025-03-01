@@ -1,24 +1,10 @@
 // attendance.js
-const db = require("../database/db");
+const db = require('../database/db');
 
 class Attendance {
   constructor(
-    id_attendance,
-    id_schedule,
-    tutor_name,
-    id_tutor,
-    student_name,
-    id_student,
-    time,
-    date,
-    session,
-    method,
-    subject,
-    id_subject,
-    image,
-    topic,
-    result,
-    attendance_status
+    id_attendance, id_schedule, tutor_name, id_tutor, student_name, id_student, time, date, session, 
+    method, subject, id_subject, image, topic, result, attendance_status
   ) {
     this.id_attendance = id_attendance; // Optional manual ID
     this.id_schedule = id_schedule;
@@ -45,21 +31,9 @@ class Attendance {
       method, subject, id_subject, image, topic, result, attendance_status)
       VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        this.id_schedule,
-        this.tutor_name,
-        this.id_tutor,
-        this.student_name,
-        this.id_student,
-        this.time,
-        this.date,
-        this.session,
-        this.method,
-        this.subject,
-        this.id_subject,
-        this.image,
-        this.topic,
-        this.result,
-        this.attendance_status,
+        this.id_schedule, this.tutor_name, this.id_tutor, this.student_name, 
+        this.id_student, this.time, this.date, this.session, this.method, this.subject, 
+        this.id_subject, this.image, this.topic, this.result, this.attendance_status
       ]
     );
     if (!this.id_attendance) {
@@ -106,7 +80,7 @@ class Attendance {
     const fields = Object.keys(updates);
     const values = Object.values(updates);
 
-    const setClause = fields.map((field) => `${field} = ?`).join(", ");
+    const setClause = fields.map((field) => `${field} = ?`).join(', ');
     values.push(id_attendance);
 
     return db.execute(
@@ -145,7 +119,7 @@ class Attendance {
     );
     return rows[0];
   }
-
+  
   static async getAttendanceByIdStudentForCurrentMonth(id_student) {
     const [rows] = await db.execute(
       `

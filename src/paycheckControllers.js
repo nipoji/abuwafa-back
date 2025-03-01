@@ -1,9 +1,9 @@
 // paycheckControllers.js
-const Paycheck = require("./paycheck");
-const db = require("../database/db");
-const multer = require("multer");
-const { Storage } = require("@google-cloud/storage");
-const path = require("path");
+const Paycheck = require('./paycheck');
+const db = require('../database/db');
+const multer = require('multer');
+const { Storage } = require('@google-cloud/storage');
+const path = require('path');
 
 // Create a Google Cloud Storage instance
 const storage = new Storage();
@@ -15,11 +15,11 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // Limit the file size to 10MB
   fileFilter: (req, file, cb) => {
     // Only allow PDF files
-    if (file.mimetype !== "application/pdf") {
-      return cb(new Error("Only PDF files are allowed"));
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF files are allowed'));
     }
     cb(null, true);
-  },
+  }
 });
 
 const createPaycheck = async (req, res) => {
@@ -29,19 +29,14 @@ const createPaycheck = async (req, res) => {
     if (!id_tutor || !month || !status || !req.file) {
       return res.status(400).send({
         error: true,
-        message: "Fields id_tutor, month, status, and file are required",
+        message: 'Fields id_tutor, month, status, and file are required'
       });
     }
 
     // Find tutor_name based on id_tutor
-    const [tutorResult] = await db.execute(
-      `SELECT tutor_name FROM tutors WHERE id_tutor = ?`,
-      [id_tutor]
-    );
+    const [tutorResult] = await db.execute(`SELECT tutor_name FROM tutors WHERE id_tutor = ?`, [id_tutor]);
     if (tutorResult.length === 0) {
-      return res
-        .status(404)
-        .send({ error: true, message: `Tutor '${id_tutor}' not found` });
+      return res.status(404).send({ error: true, message: `Tutor '${id_tutor}' not found` });
     }
     const tutor_name = tutorResult[0].tutor_name;
 
@@ -56,79 +51,32 @@ const createPaycheck = async (req, res) => {
       contentType: req.file.mimetype,
     });
 
-    stream.on("error", (err) => {
-      console.error("Error uploading file to Google Cloud Storage:", err);
-      return res
-        .status(500)
-        .send({
-          error: true,
-          message: "Error uploading file to cloud storage",
-        });
+    stream.on('error', (err) => {
+      console.error('Error uploading file to Google Cloud Storage:', err);
+      return res.status(500).send({ error: true, message: 'Error uploading file to cloud storage' });
     });
 
-    stream.on("finish", async () => {
+    stream.on('finish', async () => {
       // Once the file upload is finished, save the file path to the database
-      const paycheck = new Paycheck(
-        null,
-        id_tutor,
-        tutor_name,
-        month,
-        status,
-        fileName
-      );
+      const paycheck = new Paycheck(null, id_tutor, tutor_name, month, status, fileName);
       await paycheck.save();
 
       return res.status(201).send({
         error: false,
-        message: "Paycheck created successfully",
+        message: 'Paycheck created successfully',
         id: paycheck.id,
-        fileUrl: `https://storage.googleapis.com/${bucket.name}/${filePath}`, // Return the URL of the file
+        fileUrl: `https://storage.googleapis.com/${bucket.name}/${filePath}` // Return the URL of the file
       });
     });
 
     // Pipe the file buffer to the cloud storage stream
     stream.end(req.file.buffer);
+
   } catch (error) {
     console.error("Error creating paycheck:", error.message);
-    return res.status(500).send({
-      error: true,
-      message: "Internal server error",
-    });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
-
-// const createPaycheck = async (req, res) => {
-//   try {
-//     const { id_paycheck, tutor_name, month, status, file } = req.body;
-
-//     if (!tutor_name || !month || !status) {
-//       return res.status(400).send({
-//         error: true,
-//         message: 'Fields tutor_name, month, and status are required'
-//       });
-//     }
-
-//     // Find id_tutor based on tutor_name
-//     const [tutorResult] = await db.execute(`SELECT id_tutor FROM tutors WHERE tutor_name = ?`, [tutor_name]);
-//     if (tutorResult.length === 0) {
-//       return res.status(404).send({ error: true, message: `Tutor '${tutor_name}' not found` });
-//     }
-//     const id_tutor = tutorResult[0].id_tutor;
-
-//     // Create a new paycheck
-//     const paycheck = new Paycheck(id_paycheck, id_tutor, tutor_name, month, status, file);
-//     await paycheck.save();
-
-//     return res.status(201).send({
-//       error: false,
-//       message: 'Paycheck created successfully',
-//       id: paycheck.id
-//     });
-//   } catch (error) {
-//     console.error("Error creating paycheck:", error.message);
-//     return res.status(500).send({ error: true, message: 'Internal server error' });
-//   }
-// };
 
 const listPaychecks = async (req, res) => {
   try {
@@ -144,14 +92,12 @@ const listPaychecks = async (req, res) => {
 
     return res.send({
       error: false,
-      message: "Paychecks fetched successfully",
-      paychecks,
+      message: 'Paychecks fetched successfully',
+      paychecks
     });
   } catch (error) {
     console.error("Error listing paychecks:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -171,7 +117,7 @@ const downloadPaycheck = async (req, res) => {
     const file = bucket.file(paycheck.file);
     const stream = file.createReadStream();
 
-    stream.on("error", (err) => {
+    stream.on('error', (err) => {
       console.error("Error fetching file from Google Cloud Storage:", err);
       return res.status(500).send({
         error: true,
@@ -179,16 +125,17 @@ const downloadPaycheck = async (req, res) => {
       });
     });
 
-    stream.on("response", (response) => {
-      res.setHeader("Content-Type", "application/pdf");
+    stream.on('response', (response) => {
+      res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
-        "Content-Disposition",
+        'Content-Disposition',
         `attachment; filename=${path.basename(paycheck.file)}`
       );
     });
 
     // Pipe the file stream directly to the response
     stream.pipe(res);
+
   } catch (error) {
     console.error("Error downloading paycheck:", error.message);
     return res.status(500).send({
@@ -206,15 +153,13 @@ const updatePaycheck = async (req, res) => {
     // Fetch existing paycheck data
     const paycheck = await Paycheck.get(paycheckId);
     if (!paycheck) {
-      return res
-        .status(404)
-        .send({ error: true, message: "Paycheck not found" });
+      return res.status(404).send({ error: true, message: 'Paycheck not found' });
     }
 
     if (req.file) {
       // Delete the old file from Google Cloud Storage
       const oldFile = bucket.file(paycheck.file);
-      await oldFile.delete().catch((err) => {
+      await oldFile.delete().catch(err => {
         console.error("Error deleting old file:", err.message);
       });
 
@@ -227,40 +172,26 @@ const updatePaycheck = async (req, res) => {
         contentType: req.file.mimetype,
       });
 
-      stream.on("error", (err) => {
-        console.error("Error uploading file to Google Cloud Storage:", err);
-        return res
-          .status(500)
-          .send({
-            error: true,
-            message: "Error uploading file to cloud storage",
-          });
+      stream.on('error', (err) => {
+        console.error('Error uploading file to Google Cloud Storage:', err);
+        return res.status(500).send({ error: true, message: 'Error uploading file to cloud storage' });
       });
 
-      stream.on("finish", async () => {
+      stream.on('finish', async () => {
         updates.file = filePath;
         await Paycheck.update(paycheckId, updates);
-        return res.send({
-          error: false,
-          message: "Paycheck updated successfully",
-          fileUrl: `https://storage.googleapis.com/${bucket.name}/${filePath}`,
-        });
+        return res.send({ error: false, message: 'Paycheck updated successfully', fileUrl: `https://storage.googleapis.com/${bucket.name}/${filePath}` });
       });
 
       stream.end(req.file.buffer);
     } else {
       // Update other fields if no file is provided
       await Paycheck.update(paycheckId, updates);
-      return res.send({
-        error: false,
-        message: "Paycheck updated successfully",
-      });
+      return res.send({ error: false, message: 'Paycheck updated successfully' });
     }
   } catch (error) {
     console.error("Error updating paycheck:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -270,25 +201,21 @@ const deletePaycheck = async (req, res) => {
     // Fetch paycheck info from database
     const paycheck = await Paycheck.get(paycheckId);
     if (!paycheck) {
-      return res
-        .status(404)
-        .send({ error: true, message: "Paycheck not found" });
+      return res.status(404).send({ error: true, message: 'Paycheck not found' });
     }
 
     // Delete the file from Google Cloud Storage
     const file = bucket.file(paycheck.file);
-    await file.delete().catch((err) => {
+    await file.delete().catch(err => {
       console.error("Error deleting file from cloud storage:", err.message);
     });
 
     // Delete the paycheck record from the database
     await Paycheck.delete(paycheckId);
-    return res.send({ error: false, message: "Paycheck deleted successfully" });
+    return res.send({ error: false, message: 'Paycheck deleted successfully' });
   } catch (error) {
     console.error("Error deleting paycheck:", error.message);
-    return res
-      .status(500)
-      .send({ error: true, message: "Internal server error" });
+    return res.status(500).send({ error: true, message: 'Internal server error' });
   }
 };
 
@@ -298,5 +225,5 @@ module.exports = {
   downloadPaycheck,
   updatePaycheck,
   deletePaycheck,
-  upload,
+  upload
 };

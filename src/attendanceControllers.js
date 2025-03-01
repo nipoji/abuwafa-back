@@ -1,5 +1,6 @@
 // attendanceControllers.js
 const { Storage } = require("@google-cloud/storage");
+const path = require("path");
 const Attendance = require("./attendance");
 const dotenv = require("dotenv");
 
@@ -47,17 +48,8 @@ const createAttendance = async (req, res) => {
     } = req.body;
 
     if (
-      !id_schedule ||
-      !id_tutor ||
-      !id_student ||
-      !time ||
-      !date ||
-      !session ||
-      !method ||
-      !subject ||
-      !id_subject ||
-      !topic ||
-      !attendance_status
+      !id_schedule || !id_tutor || !id_student || 
+      !time || !date || !session || !method || !subject || !id_subject || !topic || !attendance_status
     ) {
       return res.status(400).send({
         error: true,
@@ -158,8 +150,7 @@ const generateAttendancesBySession = async (req, res) => {
         "Absent" // attendance_status (default)
       );
 
-      // Save the attendance record
-      await attendance.save(); // Assuming save is a method that handles the insertion
+      if (attendance.save) await attendance.save(); // Save if save method exists
       attendances.push(attendance);
 
       // Increment date for next session (assumes sessions are weekly)
@@ -376,9 +367,8 @@ const updateAttendance = async (req, res) => {
     const { id_attendance } = req.params;
     const updates = req.body;
 
-    // Handle image upload if there's a new image in the request
     if (req.file) {
-      updates.image = req.file ? req.file.filename : null;
+      updates.image = await uploadImageToGCS(req.file);
     }
 
     const [result] = await Attendance.update(id_attendance, updates);
@@ -412,5 +402,4 @@ module.exports = {
   getAttendanceById,
   getAttendanceForCurrentMonthByIdStudent,
   updateAttendance,
-  upload,
 };
