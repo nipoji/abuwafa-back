@@ -148,6 +148,31 @@ const getInvoiceById = async (req, res) => {
   }
 };
 
+const getInvoiceByIdInvoice = async (req, res) => {
+  try {
+    const { id_invoice } = req.params;
+    // Get invoice info from database
+    const invoice = await Invoice.get(id_invoice);
+    if (!invoice) {
+      return res.status(404).send({
+        error: true,
+        message: "Invoice not found",
+      });
+    }
+    return res.send({
+      error: false,
+      message: "Invoice fetched successfully",
+      invoice,
+    });
+  } catch (error) {
+    console.error("Error fetching invoice:", error.message);
+    return res.status(500).send({
+      error: true,
+      message: "Internal server error",
+    });
+  }
+};
+
 // List invoices
 const listInvoices = async (req, res) => {
   try {
@@ -275,6 +300,7 @@ module.exports = {
   createInvoice,
   downloadInvoice,
   getInvoiceById,
+  getInvoiceByIdInvoice,
   listInvoices,
   updateInvoice,
   deleteInvoice,
