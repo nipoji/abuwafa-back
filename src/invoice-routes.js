@@ -20,7 +20,7 @@ router.post("/invoice", verifyToken, upload.single("file"), createInvoice);
 router.get("/invoices", verifyToken, listInvoices);
 router.get("/invoice/download/:id_invoice", verifyToken, downloadInvoice);
 router.get("/invoice/list/:id_student", verifyToken, getInvoiceById);
-router.get("/invoice/:invoiceId", verifyToken, getInvoiceByIdInvoice);
+router.get("/invoice/:id_invoice", verifyToken, getInvoiceByIdInvoice);
 router.put("/invoice/:invoiceId", verifyToken, updateInvoice);
 router.delete("/invoice/:invoiceId", verifyToken, deleteInvoice);
 
