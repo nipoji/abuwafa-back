@@ -21,7 +21,12 @@ router.get("/invoices", verifyToken, listInvoices);
 router.get("/invoice/download/:id_invoice", verifyToken, downloadInvoice);
 router.get("/invoice/list/:id_student", verifyToken, getInvoiceById);
 router.get("/invoice/:id_invoice", verifyToken, getInvoiceByIdInvoice);
-router.put("/invoice/:invoiceId", verifyToken, updateInvoice);
+router.put(
+  "/invoice/:invoiceId",
+  verifyToken,
+  upload.single("file"),
+  updateInvoice
+);
 router.delete("/invoice/:invoiceId", verifyToken, deleteInvoice);
 
 module.exports = {
